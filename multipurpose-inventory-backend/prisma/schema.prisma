@@ -1,0 +1,845 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== AUTH & ACCOUNT ====================
+
+model User {
+  id           String        @id @default(uuid())
+  accountId    String
+  account      Account       @relation(fields: [accountId], references: [id])
+  activityLogs ActivityLog[]
+  email        String        @unique
+  name         String?
+  password     String
+  role         UserRole      @default(STAFF)
+  isDeleted    Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  permissions  Permission[]
+
+  @@index([accountId])
+  @@index([email])
+}
+
+model Account {
+  id               String        @id @default(uuid())
+  companyName      String
+  category         String
+  type             String
+  model            AccountModel
+  logo             String?
+  pricingPlanId    String?
+  pricingPlan      PricingPlan?  @relation(fields: [pricingPlanId], references: [id])
+  saleIdPrefix     String?
+  footerNotes      String?
+  digitalSignature String?
+  subsDate         DateTime?
+  subsExpiryDate   DateTime?
+  currency         Currency      @default(USD)
+  status           AccountStatus @default(ACTIVE)
+  isDeleted        Boolean       @default(false)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  users                 User[]
+  permissions           Permission[]
+  categories            Category[]
+  subCategories         SubCategory[]
+  suppliers             Supplier[]
+  products              Product[]
+  productStocks         ProductStock[]
+  rawProducts           RawProduct[]
+  rawProductStocks      RawProductStock[]
+  preparedProducts      PreparedProduct[]
+  preparedProductStocks PreparedProductStock[]
+  services              Service[]
+  customers             Customer[]
+  sales                 Sale[]
+  saleServices          SaleService[]
+  invoices              Invoice[]
+  purchases             Purchase[]
+  wastages              Wastage[]
+  trashes               Trash[]
+  activityLogs          ActivityLog[]
+  subscriptionHistories SubscriptionHistory[]
+  notifications         Notification[]
+  saleItems             SaleItem[]
+  purchasePayment       PurchasePayment[]
+  customerReturns       CustomerReturn[]
+
+  @@index([pricingPlanId])
+  @@index([status])
+}
+
+model Permission {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  name      String?
+  accountId String
+  account   Account        @relation(fields: [accountId], references: [id])
+  module    SystemModule
+  actions   SystemAction[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([userId, module])
+  @@index([accountId])
+}
+
+// ==================== BILLING ====================
+
+model PricingPlan {
+  id             String         @id @default(uuid())
+  name           String         @unique
+  description    String?
+  monthlyPrice   Decimal
+  yearlyPrice    Decimal
+  features       String[]
+  allowedModules SystemModule[]
+  userLimit      Int?
+  isActive       Boolean        @default(true)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  accounts              Account[]
+  subscriptionHistories SubscriptionHistory[]
+
+  @@index([isActive])
+}
+
+model SubscriptionHistory {
+  id            String      @id @default(uuid())
+  accountId     String
+  account       Account     @relation(fields: [accountId], references: [id])
+  pricingPlanId String
+  pricingPlan   PricingPlan @relation(fields: [pricingPlanId], references: [id])
+  startDate     DateTime
+  endDate       DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([accountId])
+  @@index([pricingPlanId])
+}
+
+// ==================== UNIT ====================
+
+model Unit {
+  id               String    @id @default(uuid())
+  name             String
+  symbol           String    @unique
+  group            UnitGroup
+  conversionFactor Decimal
+  isBase           Boolean   @default(false)
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  products               Product[]
+  rawProducts            RawProduct[]
+  preparedProducts       PreparedProduct[]
+  productStocks          ProductStock[]
+  saleItems              SaleItem[]
+  productUnitConversions ProductUnitConversion[]
+
+  @@index([group])
+  @@index([symbol])
+}
+
+model ProductUnitConversion {
+  id               String   @id @default(uuid())
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id])
+  unitId           String
+  unit             Unit     @relation(fields: [unitId], references: [id])
+  conversionFactor Decimal
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([productId, unitId])
+  @@index([productId])
+}
+
+// ==================== CORE ====================
+
+model Category {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  features    FeatureName[]
+  accountId   String
+  account     Account       @relation(fields: [accountId], references: [id])
+  isDeleted   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  subCategories SubCategory[]
+  products      Product[]
+  rawProducts   RawProduct[]
+  services      Service[]
+  suppliers     Supplier[]
+
+  @@index([accountId])
+  @@index([name])
+}
+
+model SubCategory {
+  id          String        @id @default(uuid())
+  name        String
+  description String?
+  features    FeatureName[]
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+  accountId   String
+  account     Account       @relation(fields: [accountId], references: [id])
+  isDeleted   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  products    Product[]
+  rawProducts RawProduct[]
+  services    Service[]
+
+  @@index([accountId])
+  @@index([categoryId])
+}
+
+// ==================== SUPPLIER ====================
+
+model Supplier {
+  id          String    @id @default(uuid())
+  name        String
+  contact     String
+  email       String?
+  companyName String?
+  address     String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  isActive    Boolean   @default(true)
+  isDeleted   Boolean   @default(false)
+  accountId   String
+  account     Account   @relation(fields: [accountId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  purchases        Purchase[]
+  productStocks    ProductStock[]
+  rawProductStocks RawProductStock[]
+
+  @@index([accountId])
+  @@index([name])
+  @@index([categoryId])
+}
+
+// ==================== PRODUCT ====================
+
+model Product {
+  id                   String       @id @default(uuid())
+  name                 String
+  img                  String?
+  description          String?
+  sku                  String?
+  tax                  Decimal?
+  defaultPurchasePrice Decimal?
+  defaultSalePrice     Decimal?
+  lowStockAlert        String?
+  categoryId           String
+  category             Category     @relation(fields: [categoryId], references: [id])
+  subCategoryId        String?
+  subCategory          SubCategory? @relation(fields: [subCategoryId], references: [id])
+  unitId               String
+  unit                 Unit         @relation(fields: [unitId], references: [id])
+  accountId            String
+  account              Account      @relation(fields: [accountId], references: [id])
+  isDeleted            Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  productStocks          ProductStock[]
+  saleItems              SaleItem[]
+  productUnitConversions ProductUnitConversion[]
+  customerReturns        CustomerReturn[]
+  wastages               Wastage[]
+
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([name])
+  @@index([sku])
+}
+
+model ProductStock {
+  id            String    @id @default(uuid())
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id])
+  purchaseId    String?
+  purchase      Purchase? @relation(fields: [purchaseId], references: [id])
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  unitId        String
+  unit          Unit      @relation(fields: [unitId], references: [id])
+  quantity      Decimal
+  purchasePrice Decimal
+  rate          Decimal
+  totalCost     Decimal
+  batch         String?
+  isDeleted     Boolean   @default(false)
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([accountId])
+  @@index([productId])
+  @@index([supplierId])
+}
+
+// ==================== RAW PRODUCT ====================
+
+model RawProduct {
+  id            String       @id @default(uuid())
+  name          String
+  unitId        String
+  unit          Unit         @relation(fields: [unitId], references: [id])
+  totalStock    Decimal      @default(0)
+  averageCost   Decimal      @default(0)
+  img           String?
+  description   String?
+  lowStockAlert String?
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  subCategoryId String?
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  accountId     String
+  account       Account      @relation(fields: [accountId], references: [id])
+  isDeleted     Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  rawProductStocks     RawProductStock[]
+  preparedProductItems PreparedProductItem[]
+  wastages             Wastage[]
+
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([name])
+}
+
+model RawProductStock {
+  id            String     @id @default(uuid())
+  rawProductId  String
+  rawProduct    RawProduct @relation(fields: [rawProductId], references: [id])
+  purchaseId    String?
+  purchase      Purchase?  @relation(fields: [purchaseId], references: [id])
+  supplierId    String?
+  supplier      Supplier?  @relation(fields: [supplierId], references: [id])
+  quantity      Decimal
+  totalCost     Decimal?
+  lowStockAlert String?
+  batch         String?
+  isDeleted     Boolean    @default(false)
+  accountId     String
+  account       Account    @relation(fields: [accountId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([accountId])
+  @@index([rawProductId])
+  @@index([supplierId])
+}
+
+// ==================== PREPARED PRODUCT ====================
+
+model PreparedProduct {
+  id                    String                 @id @default(uuid())
+  name                  String
+  none                  String?
+  img                   String?
+  description           String?
+  categoryId            String
+  subCategoryId         String?
+  rawMaterialCost       Decimal?
+  expiryDate            DateTime?
+  defaultSalePrice      Decimal?
+  unitId                String
+  unit                  Unit                   @relation(fields: [unitId], references: [id])
+  isDeleted             Boolean                @default(false)
+  accountId             String
+  account               Account                @relation(fields: [accountId], references: [id])
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  preparedProductStocks PreparedProductStock[]
+  preparedProductItems  PreparedProductItem[]
+  saleItems             SaleItem[]
+  wastages              Wastage[]
+  customerReturns               CustomerReturn[]
+
+  sales Sale[]
+
+  @@index([accountId])
+  @@index([name])
+}
+
+model PreparedProductItem {
+  id                String          @id @default(uuid())
+  preparedProductId String
+  preparedProduct   PreparedProduct @relation(fields: [preparedProductId], references: [id])
+  rawProductId      String
+  rawProduct        RawProduct      @relation(fields: [rawProductId], references: [id])
+  quantity          Decimal
+  unit              String
+
+  @@unique([preparedProductId, rawProductId])
+  @@index([preparedProductId])
+  @@index([rawProductId])
+}
+
+model PreparedProductStock {
+  id                String          @id @default(uuid())
+  preparedProductId String
+  preparedProduct   PreparedProduct @relation(fields: [preparedProductId], references: [id])
+  quantity          Decimal
+  costPerUnit       Decimal         @default(0)
+  isDeleted         Boolean         @default(false)
+  batch             String?
+  expiryDate        DateTime?
+  manufactureDate   DateTime?
+
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([preparedProductId])
+}
+
+// ==================== PURCHASE ====================
+
+model Purchase {
+  id            String    @id @default(uuid())
+  productId     String?
+  qty           Decimal
+  purchasePrice Decimal
+  rate          Decimal
+  totalCost     Decimal
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  notes         String?
+  isDeleted     Boolean   @default(false)
+  accountId     String
+  account       Account   @relation(fields: [accountId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  productStocks    ProductStock[]
+  rawProductStocks RawProductStock[]
+  paidAmount       Decimal               @default(0)
+  due              Decimal               @default(0)
+  paymentStatus    PurchasePaymentStatus @default(UNPAID)
+
+  payments PurchasePayment[]
+
+  @@index([paymentStatus])
+  @@index([accountId])
+  @@index([supplierId])
+  @@index([createdAt])
+}
+
+model PurchasePayment {
+  id         String        @id @default(uuid())
+  purchaseId String
+  purchase   Purchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  amount     Decimal
+  method     PaymentMethod @default(CASH)
+  note       String?
+  accountId  String
+  account    Account       @relation(fields: [accountId], references: [id])
+  paidAt     DateTime      @default(now())
+  createdAt  DateTime      @default(now())
+
+  @@index([purchaseId])
+  @@index([accountId])
+}
+
+// ==================== SERVICE ====================
+
+model Service {
+  id            String       @id @default(uuid())
+  name          String
+  internalCost  Decimal?     @default(0)
+  salePrice     Decimal      @default(0)
+  description   String?
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  subCategoryId String?
+  subCategory   SubCategory? @relation(fields: [subCategoryId], references: [id])
+  accountId     String
+  account       Account      @relation(fields: [accountId], references: [id])
+  isDeleted     Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  saleServices SaleService[]
+
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([name])
+}
+
+// ==================== CUSTOMER ====================
+
+model Customer {
+  id            String   @id @default(uuid())
+  name          String
+  email         String?
+  phone         String
+  address       String?
+  hasMembership Boolean  @default(false)
+  isDeleted     Boolean  @default(false)
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sales Sale[]
+
+  @@index([accountId])
+  @@index([phone])
+  @@index([name])
+}
+
+// ==================== SALE ====================
+
+// model Sale {
+//   id             String        @id @default(uuid())
+//   customerId     String?
+//   customer       Customer?     @relation(fields: [customerId], references: [id])
+//   customerNumber String?
+//   paymentMethod  PaymentMethod @default(CASH)
+//   discount       Decimal?      @default(0)
+//   due            Decimal?      @default(0)
+//   isDeleted      Boolean       @default(false)
+//   accountId      String
+//   account        Account       @relation(fields: [accountId], references: [id])
+//   createdAt      DateTime      @default(now())
+//   updatedAt      DateTime      @updatedAt
+
+//   saleItems    SaleItem[]
+//   saleServices SaleService[]
+//   invoices     Invoice[]
+
+//   @@index([accountId])
+//   @@index([customerId])
+//   @@index([createdAt])
+// }
+
+model Sale {
+  id                String           @id @default(uuid())
+  customerId        String?
+  customer          Customer?        @relation(fields: [customerId], references: [id])
+  customerNumber    String?
+  paymentMethod     PaymentMethod    @default(CASH)
+  payments          Json?
+  discount          Decimal?         @default(0)
+  due               Decimal?         @default(0)
+  isDeleted         Boolean          @default(false)
+  accountId         String
+  account           Account          @relation(fields: [accountId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  preparedProductId String?
+  preparedProduct   PreparedProduct? @relation(fields: [preparedProductId], references: [id])
+
+  saleItems    SaleItem[]
+  saleServices SaleService[]
+  invoices     Invoice[]
+  customerReturns      CustomerReturn[]
+
+  @@index([accountId])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id     String @id @default(uuid())
+  saleId String
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  itemType SaleItemType @default(PRODUCT)
+
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  preparedProductId String?
+  preparedProduct   PreparedProduct? @relation(fields: [preparedProductId], references: [id])
+
+  unitId        String
+  unit          Unit     @relation(fields: [unitId], references: [id])
+  quantity      Decimal
+  convertedQty  Decimal
+  purchasePrice Decimal
+  sellPrice     Decimal
+  discount      Decimal? @default(0)
+  accountId     String
+  account       Account  @relation(fields: [accountId], references: [id])
+  createdAt     DateTime @default(now())
+
+  @@index([saleId])
+  @@index([productId])
+  @@index([preparedProductId])
+  @@index([accountId])
+}
+
+model SaleService {
+  id        String   @id @default(uuid())
+  saleId    String
+  serviceId String
+  accountId String
+  quantity  Int      @default(1)
+  unitPrice Decimal
+  discount  Decimal? @default(0)
+  total     Decimal
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@unique([saleId, serviceId])
+  @@index([accountId])
+  @@index([saleId])
+  @@index([serviceId])
+}
+
+// ==================== WASTAGE ====================
+
+model Wastage {
+  id                String           @id @default(uuid())
+  productId         String?
+  product           Product?         @relation(fields: [productId], references: [id])
+  rawProductId      String?
+  rawProduct        RawProduct?      @relation(fields: [rawProductId], references: [id])
+  preparedProductId String?
+  preparedProduct   PreparedProduct? @relation(fields: [preparedProductId], references: [id])
+  quantity          Decimal
+  reason            String
+  notes             String?
+  isDeleted         Boolean          @default(false)
+  accountId         String
+  account           Account          @relation(fields: [accountId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  @@index([accountId])
+  @@index([productId])
+  @@index([rawProductId])
+  @@index([preparedProductId])
+}
+
+model CustomerReturn {
+  id                   String           @id @default(uuid())
+  saleId               String
+  sale                 Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  itemType             SaleItemType     @default(PRODUCT)
+  productId            String?
+  product              Product?         @relation(fields: [productId], references: [id])
+  preparedProductId    String?
+  preparedProduct      PreparedProduct? @relation(fields: [preparedProductId], references: [id])
+  quantity             Decimal
+  refundAmount         Decimal          @default(0)
+  excessRefundAmount   Decimal          @default(0)
+  requiresManualRefund Boolean          @default(false)
+  restocked            Boolean          @default(true)
+  reason               String?
+  isDeleted            Boolean          @default(false)
+  accountId            String
+  account              Account          @relation(fields: [accountId], references: [id])
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@index([accountId])
+  @@index([saleId])
+  @@index([productId])
+  @@index([preparedProductId])
+}
+
+// ==================== INVOICE ====================
+
+model Invoice {
+  id          String        @id @default(uuid())
+  billTo      String
+  invoiceDate DateTime
+  saleId      String
+  sale        Sale          @relation(fields: [saleId], references: [id])
+  status      InvoiceStatus @default(PENDING)
+  grandTotal  Decimal
+  accountId   String
+  account     Account       @relation(fields: [accountId], references: [id])
+  isDeleted   Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([accountId])
+  @@index([saleId])
+}
+
+// ==================== UTILITY ====================
+
+model Trash {
+  id         String       @id @default(uuid())
+  moduleName SystemModule
+  itemName   String
+  itemId     String
+  deletedBy  String
+  accountId  String
+  account    Account      @relation(fields: [accountId], references: [id])
+  date       DateTime     @default(now())
+
+  @@index([accountId])
+}
+
+model ActivityLog {
+  id        String       @id @default(uuid())
+  userId    String
+  module    SystemModule
+  action    SystemAction
+  details   String?
+  accountId String
+  account   Account      @relation(fields: [accountId], references: [id])
+  user      User         @relation(fields: [userId], references: [id])
+  dateTime  DateTime     @default(now())
+
+  @@index([accountId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id])
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([accountId])
+}
+
+// ==================== ENUMS ====================
+
+enum UnitGroup {
+  WEIGHT
+  VOLUME
+  LENGTH
+  COUNT
+  AREA
+}
+
+enum UserRole {
+  DEVELOPER
+  ADMIN
+  STAFF
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum AccountModel {
+  RETAIL
+  SERVICE
+  RESTAURANT
+  RETAIL_AND_SERVICE
+  SERVICE_AND_RESTAURANT
+  RETAIL_AND_RESTAURANT
+  RETAIL_AND_SERVICE_AND_RESTAURANT
+}
+
+enum Currency {
+  USD
+  BDT
+  EUR
+  GBP
+}
+
+enum SystemModule {
+  AUTH
+  USER
+  ACCOUNT
+  CATEGORY
+  SUBCATEGORY
+  SUPPLIER
+  PRODUCT
+  RAW_PRODUCT
+  PREPARED_PRODUCT
+  PURCHASE
+  SERVICE
+  CUSTOMER
+  SALE
+  WASTAGE
+  INVOICE
+  PERMISSION
+  PRICING_PLAN
+  NOTIFICATION
+  ACTIVITY_LOG
+  TRASH
+  STOCK
+  STAFF
+}
+
+enum SystemAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  RESTORE
+  LOGIN
+  LOGOUT
+  STOCK_IN
+  STOCK_OUT
+}
+
+enum FeatureName {
+  RETAIL
+  SERVICE
+  RESTAURANT
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  MOBILE_BANKING
+  CREDIT
+  CASH_AND_CARD
+  CASH_AND_MOBILE_BANKING
+  CASH_AND_CREDIT
+  CARD_AND_MOBILE_BANKING
+  CARD_AND_CREDIT
+  MOBILE_BANKING_AND_CREDIT
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  PARTIALLY_PAID
+  CANCELLED
+}
+
+enum SaleItemType {
+  PRODUCT
+  PREPARED_PRODUCT
+}
+
+enum PurchasePaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+}

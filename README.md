@@ -2,6 +2,8 @@
 
 A full-stack business management platform built as a monorepo for managing inventory, purchases, sales, suppliers, customers, wastage, and service operations in one place.
 
+Live Link- https://sell-tech-suite.vercel.app
+
 This project combines:
 
 - a Next.js frontend for dashboards and business workflows

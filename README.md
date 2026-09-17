@@ -91,13 +91,6 @@ inventory/
 - Prepared item production and recipe-style tracking
 - Service-oriented business modules
 
-### User & access management
-
-- User accounts and roles
-- Permission-aware modules
-- Staff and account-level access control foundation
-- Activity tracking for business actions
-
 ---
 
 ## Tech Stack
@@ -163,7 +156,6 @@ The current application structure includes modules for:
 - return
 - sale
 - service
-- staff
 - supplier
 - trash
 - unit
@@ -303,12 +295,6 @@ The goal of this application is not just code architecture, but practical busine
 - daily business decisions supported by a clear dashboard
 
 In short, this project aims to be a useful operational tool for real-world business management, not only a technical demo.
-
----
-
-## License
-
-This project is currently configured as a private application and does not currently declare a public commercial license.
 
 ---
 

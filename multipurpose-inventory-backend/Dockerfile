@@ -12,7 +12,7 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-RUN pnpm run build
+RUN DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public" pnpm run build
 
 FROM node:20-alpine AS runner
 

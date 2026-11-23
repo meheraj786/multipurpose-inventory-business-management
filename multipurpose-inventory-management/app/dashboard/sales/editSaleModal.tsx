@@ -9,9 +9,11 @@ import {
 	useForm,
 	useWatch,
 } from "react-hook-form";
+import { BarcodeScanner } from "@/components/ui/barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ProductSelector } from "@/components/ui/product-selector";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetCustomers } from "@/hooks/useCustomer";
@@ -81,8 +83,14 @@ export function EditSaleModal({ sale, onClose }: Props) {
 			itemType: "PRODUCT" as const,
 			id: product.id,
 			label: product.name,
-			description: product.sku ? `SKU: ${product.sku}` : "Product",
-			searchValue: `${product.name} ${product.sku ?? ""}`,
+			description:
+				[
+					product.sku && `SKU: ${product.sku}`,
+					product.barcode && `Barcode: ${product.barcode}`,
+				]
+					.filter(Boolean)
+					.join(" · ") || "Product",
+			searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 			unitId: product.unitId ?? "",
 			sellPrice: Number(product.defaultSalePrice ?? 0),
 		})),
@@ -261,6 +269,31 @@ export function EditSaleModal({ sale, onClose }: Props) {
 		return "";
 	};
 
+	const handleScannedProduct = (product: (typeof products)[number]) => {
+		const existingIndex = watchedItems.findIndex(
+			(item) =>
+				item?.itemType !== "PREPARED_PRODUCT" && item?.productId === product.id,
+		);
+		if (existingIndex >= 0) {
+			setValue(
+				`saleItems.${existingIndex}.quantity`,
+				Number(watchedItems[existingIndex]?.quantity ?? 0) + 1,
+				{ shouldDirty: true, shouldValidate: true },
+			);
+			return;
+		}
+
+		appendItem({
+			itemType: "PRODUCT",
+			productId: product.id,
+			preparedProductId: "",
+			unitId: product.unitId ?? "",
+			quantity: 1,
+			sellPrice: Number(product.defaultSalePrice ?? 0),
+			discount: 0,
+		});
+	};
+
 	const onSubmit: SubmitHandler<UpdateSaleForm> = (values) => {
 		const collectedNow = Math.max(0, grandTotal - Number(values.due ?? 0));
 		const payments = singleTransactional
@@ -408,6 +441,14 @@ export function EditSaleModal({ sale, onClose }: Props) {
 
 			{showItemsCard && (
 				<div>
+					{showItems && (
+						<div className="mb-4">
+							<FieldLabel className="text-xs">Scan product barcode</FieldLabel>
+							<div className="mt-1">
+								<BarcodeScanner autoFocus onProduct={handleScannedProduct} />
+							</div>
+						</div>
+					)}
 					<div className="flex items-center justify-between pb-2 border-b mb-4">
 						<p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
 							{showPrepared && !showItems ? (
@@ -444,9 +485,10 @@ export function EditSaleModal({ sale, onClose }: Props) {
 							>
 								<div className="col-span-4">
 									<FieldLabel className="text-xs">Item</FieldLabel>
-									<SearchableCombobox
+									<ProductSelector
 										value={getSelectedItemValue(index)}
 										onChange={(value) => handleItemSelect(index, value)}
+										showBarcodeScanner={false}
 										options={itemOptions.map((o) => ({
 											value: o.value,
 											label: o.label,

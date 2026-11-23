@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { useCan } from "@/hooks/useCan";
 import {
 	useCreateCustomer,
 	useDeleteCustomer,
@@ -37,6 +38,9 @@ import {
 import { createCustomerColumns } from "./columns";
 
 export default function CustomerPage() {
+	const canCreate = useCan("CUSTOMER", "CREATE");
+	const canUpdate = useCan("CUSTOMER", "UPDATE");
+	const canDelete = useCan("CUSTOMER", "DELETE");
 	const [tableParams, setTableParams] = useState({ page: 1, pageSize: 10 });
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editTarget, setEditTarget] = useState<CustomerData | null>(null);
@@ -132,6 +136,8 @@ export default function CustomerPage() {
 	const columns = createCustomerColumns({
 		onEdit: openEdit,
 		onDelete: setDeleteTarget,
+		canUpdate,
+		canDelete,
 	});
 
 	return (
@@ -159,7 +165,7 @@ export default function CustomerPage() {
 			<Modal
 				open={createOpen}
 				onOpenChange={setCreateOpen}
-				trigger={<Button>+ Add Customer</Button>}
+				trigger={canCreate ? <Button>+ Add Customer</Button> : undefined}
 				title="Add Customer"
 			>
 				<form className="space-y-5 p-6" onSubmit={onCreateSubmit}>

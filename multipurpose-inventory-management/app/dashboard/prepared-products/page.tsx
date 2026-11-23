@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
@@ -388,6 +389,10 @@ function ProduceStockModal({
 }
 
 export default function PreparedProductsPage() {
+	const canCreate = useCan("PREPARED_PRODUCT", "CREATE");
+	const canUpdate = useCan("PREPARED_PRODUCT", "UPDATE");
+	const canDelete = useCan("PREPARED_PRODUCT", "DELETE");
+	const canProduce = useCan("PREPARED_PRODUCT", "STOCK_IN");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editPP, setEditPP] = useState<PreparedProductWithItems | null>(null);
 	const [producePP, setProducePP] = useState<PreparedProductWithItems | null>(
@@ -472,8 +477,11 @@ export default function PreparedProductsPage() {
 					}
 				},
 				onProduce: (pp: PreparedProduct) => handlersRef.current.onProduce(pp),
+				canUpdate,
+				canDelete,
+				canProduce,
 			}),
-		[deletePP],
+		[deletePP, canUpdate, canDelete, canProduce],
 	);
 
 	return (
@@ -507,7 +515,9 @@ export default function PreparedProductsPage() {
 					setCreateOpen(open);
 					if (!open) setCreateCategoryId("");
 				}}
-				trigger={<Button>+ New Prepared Product</Button>}
+				trigger={
+					canCreate ? <Button>+ New Prepared Product</Button> : undefined
+				}
 				title="Create Prepared Product"
 			>
 				<PreparedProductForm

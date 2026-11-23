@@ -44,6 +44,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	useDeletePurchase,
@@ -125,6 +126,9 @@ const getDateRange = (
 };
 
 export default function PurchasesPage() {
+	const canCreate = useCan("PURCHASE", "CREATE");
+	const canUpdate = useCan("PURCHASE", "UPDATE");
+	const canDelete = useCan("PURCHASE", "DELETE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -291,7 +295,7 @@ export default function PurchasesPage() {
 									View Details
 								</Link>
 							</DropdownMenuItem>
-							{Number(row.original.due) > 0 && (
+							{canUpdate && Number(row.original.due) > 0 && (
 								<DropdownMenuItem
 									onClick={() => setPaymentTarget(row.original)}
 								>
@@ -299,24 +303,30 @@ export default function PurchasesPage() {
 									Record Payment
 								</DropdownMenuItem>
 							)}
-							<DropdownMenuItem onClick={() => setEditTarget(row.original)}>
-								<Pencil className="mr-2 h-4 w-4" />
-								Edit
-							</DropdownMenuItem>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								className="text-destructive focus:text-destructive"
-								onClick={() => setDeleteTarget(row.original)}
-							>
-								<Trash2 className="mr-2 h-4 w-4" />
-								Delete
-							</DropdownMenuItem>
+							{canUpdate && (
+								<DropdownMenuItem onClick={() => setEditTarget(row.original)}>
+									<Pencil className="mr-2 h-4 w-4" />
+									Edit
+								</DropdownMenuItem>
+							)}
+							{canDelete && (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										className="text-destructive focus:text-destructive"
+										onClick={() => setDeleteTarget(row.original)}
+									>
+										<Trash2 className="mr-2 h-4 w-4" />
+										Delete
+									</DropdownMenuItem>
+								</>
+							)}
 						</DropdownMenuContent>
 					</DropdownMenu>
 				),
 			},
 		],
-		[symbol],
+		[symbol, canUpdate, canDelete],
 	);
 
 	return (
@@ -401,7 +411,7 @@ export default function PurchasesPage() {
 					<Modal
 						open={createOpen}
 						onOpenChange={setCreateOpen}
-						trigger={<Button>+ New Purchase</Button>}
+						trigger={canCreate ? <Button>+ New Purchase</Button> : undefined}
 						title="Create Purchase"
 						className="w-full"
 					>

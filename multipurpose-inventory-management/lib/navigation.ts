@@ -47,7 +47,7 @@ export const RETAIL_NAV: NavItem[] = [
 		label: "Inventory",
 		href: "/dashboard/inventory",
 		icon: Package,
-		module: "STOCK",
+		module: "PRODUCT",
 	},
 	{
 		label: "Suppliers",
@@ -65,7 +65,7 @@ export const RETAIL_NAV: NavItem[] = [
 		label: "Wastage",
 		href: "/dashboard/wastage",
 		icon: Trash2,
-		module: "STOCK",
+		module: "WASTAGE",
 	},
 ];
 
@@ -97,7 +97,7 @@ export const RESTAURANT_NAV: NavItem[] = [
 		label: "Wastage",
 		href: "/dashboard/wastage",
 		icon: Trash2,
-		module: "STOCK",
+		module: "WASTAGE",
 	},
 ];
 
@@ -142,12 +142,23 @@ export const TAXONOMY_NAV: NavItem[] = [
 // ─── Admin-only routes ────────────────────────────────────────────────────────
 export const ADMIN_NAV: NavItem[] = [
 	{
+		label: "Staff",
+		href: "/dashboard/staff",
+		icon: Users,
+		module: "STAFF",
+	},
+	{
+		label: "Roles & Permissions",
+		href: "/dashboard/roles",
+		icon: Users,
+		module: "STAFF",
+	},
+	{
 		label: "My Assistant",
 		href: "/dashboard/assistant",
 		icon: Stars,
 		module: "ASSISTANT",
 	},
-	// { label: "Staff", href: "/dashboard/staff", icon: Users, module: "STAFF" },
 	{
 		label: "Activity Log",
 		href: "/dashboard/activityLog",
@@ -168,3 +179,7 @@ export const ADMIN_NAV: NavItem[] = [
 		module: "ACCOUNT",
 	},
 ];
+
+export const STAFF_ADMIN_NAV = ADMIN_NAV.filter((item) =>
+	["ACTIVITY_LOG", "TRASH"].includes(item.module),
+);

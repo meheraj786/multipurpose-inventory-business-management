@@ -24,6 +24,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCan } from "@/hooks/useCan";
 import {
 	useGetTrash,
 	usePermanentDelete,
@@ -54,6 +55,7 @@ const createColumns = (
 	_onDelete: (id: string) => void,
 	isRestoring: boolean,
 	_isDeleting: boolean,
+	canRestore: boolean,
 ): ColumnDef<TrashResponse>[] => [
 	{
 		accessorKey: "itemName",
@@ -97,16 +99,18 @@ const createColumns = (
 			return (
 				<div className="flex items-center gap-2">
 					{/* Restore */}
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={isRestoring}
-						onClick={() => onRestore(id)}
-						className="gap-1.5"
-					>
-						<RotateCcw className="h-3.5 w-3.5" />
-						Restore
-					</Button>
+					{canRestore && (
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={isRestoring}
+							onClick={() => onRestore(id)}
+							className="gap-1.5"
+						>
+							<RotateCcw className="h-3.5 w-3.5" />
+							Restore
+						</Button>
+					)}
 
 					{/* Permanent delete */}
 					{/* <AlertDialog>
@@ -149,6 +153,7 @@ const createColumns = (
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TrashPage() {
+	const canRestore = useCan("TRASH", "RESTORE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 20,
@@ -172,6 +177,7 @@ export default function TrashPage() {
 		permanentDelete,
 		isRestoring,
 		isDeleting,
+		canRestore,
 	);
 
 	return (

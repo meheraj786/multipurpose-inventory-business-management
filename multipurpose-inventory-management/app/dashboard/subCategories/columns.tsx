@@ -17,6 +17,8 @@ import type { SubCategoryData } from "@/validation/subcategory.schema";
 type ColumnCallbacks = {
 	onEdit: (sub: SubCategoryData) => void;
 	onDelete: (sub: SubCategoryData) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
 };
 
 export const createSubCategoryColumns = (
@@ -68,18 +70,24 @@ export const createSubCategoryColumns = (
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						<DropdownMenuItem onClick={() => callbacks.onEdit(sub)}>
-							<Pencil className="mr-2 h-4 w-4" />
-							Edit
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							className="text-destructive focus:text-destructive"
-							onClick={() => callbacks.onDelete(sub)}
-						>
-							<Trash2 className="mr-2 h-4 w-4" />
-							Delete
-						</DropdownMenuItem>
+						{callbacks.canUpdate && (
+							<DropdownMenuItem onClick={() => callbacks.onEdit(sub)}>
+								<Pencil className="mr-2 h-4 w-4" />
+								Edit
+							</DropdownMenuItem>
+						)}
+						{callbacks.canDelete && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem
+									className="text-destructive focus:text-destructive"
+									onClick={() => callbacks.onDelete(sub)}
+								>
+									<Trash2 className="mr-2 h-4 w-4" />
+									Delete
+								</DropdownMenuItem>
+							</>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

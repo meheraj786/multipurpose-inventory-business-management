@@ -1,6 +1,5 @@
 import type {
 	CreateStaffForm,
-	PermissionEntry,
 	UpdateStaffForm,
 } from "@/validation/staff.schema";
 import api from "../client";
@@ -10,7 +9,12 @@ export type StaffMember = {
 	email: string;
 	name: string | null;
 	role: string;
-	permissions: { module: string; actions: string[] }[];
+	customRoleId: string | null;
+	customRole: {
+		id: string;
+		name: string;
+		permissions: { module: string; actions: string[] }[];
+	} | null;
 	createdAt: string;
 };
 
@@ -40,16 +44,7 @@ export const StaffService = {
 		return data.data;
 	},
 	update: async (id: string, payload: UpdateStaffForm) => {
-		const { data } = await api.put(`/staff/${id}`, payload);
-		return data.data;
-	},
-	updatePermissions: async (
-		staffId: string,
-		permissions: PermissionEntry[],
-	) => {
-		const { data } = await api.put(`/staff/${staffId}/permissions`, {
-			permissions,
-		});
+		const { data } = await api.patch(`/staff/${id}`, payload);
 		return data.data;
 	},
 	remove: async (id: string) => {

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import {
 	type RawProduct,
@@ -266,6 +267,10 @@ function StockInForm({ rawProduct, onClose }: StockInFormProps) {
 }
 
 export default function RawProductsPage() {
+	const canCreate = useCan("RAW_PRODUCT", "CREATE");
+	const canUpdate = useCan("RAW_PRODUCT", "UPDATE");
+	const canDelete = useCan("RAW_PRODUCT", "DELETE");
+	const canStockIn = useCan("RAW_PRODUCT", "STOCK_IN");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editRawProduct, setEditRawProduct] = useState<RawProduct | null>(null);
 	const [stockInRawProduct, setStockInRawProduct] = useState<RawProduct | null>(
@@ -386,8 +391,11 @@ export default function RawProductsPage() {
 					}
 				},
 				onStockIn: (rp) => setStockInRawProduct(rp),
+				canUpdate,
+				canDelete,
+				canStockIn,
 			}),
-		[deleteRawProduct, openEdit],
+		[deleteRawProduct, openEdit, canUpdate, canDelete, canStockIn],
 	);
 
 	return (
@@ -418,7 +426,7 @@ export default function RawProductsPage() {
 			<Modal
 				open={createOpen}
 				onOpenChange={setCreateOpen}
-				trigger={<Button>+ New Raw Product</Button>}
+				trigger={canCreate ? <Button>+ New Raw Product</Button> : undefined}
 				title="Create Raw Product"
 			>
 				<form onSubmit={createForm.handleSubmit(onCreateSubmit)}>
@@ -435,9 +443,11 @@ export default function RawProductsPage() {
 				</form>
 			</Modal>
 			{/* stock button  */}
-			<Link href="/dashboard/raw-products/stocks">
-				<Button>Stock</Button>
-			</Link>
+			{canStockIn && (
+				<Link href="/dashboard/raw-products/stocks">
+					<Button>Stock</Button>
+				</Link>
+			)}
 			<Modal
 				open={!!editRawProduct}
 				onOpenChange={(open) => !open && setEditRawProduct(null)}

@@ -16,6 +16,8 @@ import type { Product } from "@/hooks/useProducts";
 type ColumnMeta = {
 	onEdit: (product: Product) => void;
 	onDelete: (id: string) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
 };
 
 export const getProductColumns = (
@@ -111,17 +113,21 @@ export const getProductColumns = (
 								View Details
 							</DropdownMenuItem>
 						</Link>
-						<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
-							<Pencil className="mr-2 h-4 w-4" />
-							Edit
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							className="text-destructive"
-							onClick={() => meta.onDelete(row.original.id)}
-						>
-							<Trash2 className="mr-2 h-4 w-4" />
-							Delete
-						</DropdownMenuItem>
+						{meta.canUpdate && (
+							<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
+								<Pencil className="mr-2 h-4 w-4" />
+								Edit
+							</DropdownMenuItem>
+						)}
+						{meta.canDelete && (
+							<DropdownMenuItem
+								className="text-destructive"
+								onClick={() => meta.onDelete(row.original.id)}
+							>
+								<Trash2 className="mr-2 h-4 w-4" />
+								Delete
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

@@ -36,6 +36,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	type Supplier,
@@ -47,6 +48,9 @@ import {
 export default function SuppliersPage() {
 	const router = useRouter();
 	const { symbol } = useCurrency();
+	const canCreate = useCan("SUPPLIER", "CREATE");
+	const canUpdate = useCan("SUPPLIER", "UPDATE");
+	const canDelete = useCan("SUPPLIER", "DELETE");
 
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
@@ -173,32 +177,39 @@ export default function SuppliersPage() {
 									View Details
 								</DropdownMenuItem>
 
-								<DropdownMenuItem onClick={() => setEditSupplier(supplier)}>
-									<Pencil className="mr-2 h-4 w-4" />
-									Edit
-								</DropdownMenuItem>
+								{canUpdate && (
+									<DropdownMenuItem onClick={() => setEditSupplier(supplier)}>
+										<Pencil className="mr-2 h-4 w-4" />
+										Edit
+									</DropdownMenuItem>
+								)}
 
-								<DropdownMenuItem onClick={() => toggleActive(supplier.id)}>
-									<Power className="mr-2 h-4 w-4" />
-									{supplier.isActive ? "Deactivate" : "Activate"}
-								</DropdownMenuItem>
+								{canUpdate && (
+									<DropdownMenuItem onClick={() => toggleActive(supplier.id)}>
+										<Power className="mr-2 h-4 w-4" />
+										{supplier.isActive ? "Deactivate" : "Activate"}
+									</DropdownMenuItem>
+								)}
 
-								<DropdownMenuSeparator />
-
-								<DropdownMenuItem
-									className="text-destructive focus:text-destructive"
-									onClick={() => setDeleteTarget(supplier)}
-								>
-									<Trash2 className="mr-2 h-4 w-4" />
-									Delete
-								</DropdownMenuItem>
+								{canDelete && (
+									<>
+										<DropdownMenuSeparator />
+										<DropdownMenuItem
+											className="text-destructive focus:text-destructive"
+											onClick={() => setDeleteTarget(supplier)}
+										>
+											<Trash2 className="mr-2 h-4 w-4" />
+											Delete
+										</DropdownMenuItem>
+									</>
+								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					);
 				},
 			},
 		],
-		[router, toggleActive, symbol],
+		[router, toggleActive, symbol, canUpdate, canDelete],
 	);
 
 	return (
@@ -244,7 +255,7 @@ export default function SuppliersPage() {
 				<Modal
 					open={createOpen}
 					onOpenChange={setCreateOpen}
-					trigger={<Button>+ New Supplier</Button>}
+					trigger={canCreate ? <Button>+ New Supplier</Button> : undefined}
 					title="Create Supplier"
 				>
 					<SupplierFormModal onClose={() => setCreateOpen(false)} />

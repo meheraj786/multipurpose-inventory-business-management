@@ -18,6 +18,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/hooks/useCan";
 import {
 	// useCreateCategory,
 	useDeleteCategory,
@@ -27,6 +28,9 @@ import type { CategoryData } from "@/validation/category.schema";
 import { createCategoryColumns } from "./columns";
 
 export default function CategoryPage() {
+	const canCreate = useCan("CATEGORY", "CREATE");
+	const canUpdate = useCan("CATEGORY", "UPDATE");
+	const canDelete = useCan("CATEGORY", "DELETE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -54,8 +58,10 @@ export default function CategoryPage() {
 			createCategoryColumns({
 				onEdit: (cat) => setEditTarget(cat),
 				onDelete: (cat) => setDeleteTarget(cat),
+				canUpdate,
+				canDelete,
 			}),
-		[],
+		[canUpdate, canDelete],
 	);
 
 	return (
@@ -83,7 +89,7 @@ export default function CategoryPage() {
 			<Modal
 				open={createOpen}
 				onOpenChange={setCreateOpen}
-				trigger={<Button>+ Add Category</Button>}
+				trigger={canCreate ? <Button>+ Add Category</Button> : undefined}
 				title="Add Category"
 			>
 				<CategoryFormModal onClose={() => setCreateOpen(false)} />

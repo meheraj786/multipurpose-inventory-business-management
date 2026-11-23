@@ -23,8 +23,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProductSelector } from "@/components/ui/product-selector";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
 import { useGetProducts } from "@/hooks/useProducts";
 import { useGetRawProducts } from "@/hooks/useRawProducts";
@@ -77,13 +79,31 @@ const ASSET_TYPE_CONFIG: AssetTypeConfig[] = [
 export default function WastagePage() {
 	const queryClient = useQueryClient();
 	const businessModel = useBusinessModel();
+	const canReadProducts = useCan("PRODUCT", "READ");
+	const canReadRawProducts = useCan("RAW_PRODUCT", "READ");
+	const canReadPreparedProducts = useCan("PREPARED_PRODUCT", "READ");
+	const canCreateWastageRecord = useCan("WASTAGE", "CREATE");
+	const canReduceStock = useCan("WASTAGE", "STOCK_OUT");
+	const canCreateWastage = canCreateWastageRecord && canReduceStock;
+	const canDeleteWastage = useCan("WASTAGE", "DELETE");
 
 	const allowedAssetTypes = useMemo(
 		() =>
-			ASSET_TYPE_CONFIG.filter((cfg) =>
-				isModuleAllowedForModel(cfg.module, businessModel),
-			),
-		[businessModel],
+			ASSET_TYPE_CONFIG.filter((cfg) => {
+				const canReadAsset =
+					(cfg.module === "PRODUCT" && canReadProducts) ||
+					(cfg.module === "RAW_PRODUCT" && canReadRawProducts) ||
+					(cfg.module === "PREPARED_PRODUCT" && canReadPreparedProducts);
+				return (
+					canReadAsset && isModuleAllowedForModel(cfg.module, businessModel)
+				);
+			}),
+		[
+			businessModel,
+			canReadProducts,
+			canReadRawProducts,
+			canReadPreparedProducts,
+		],
 	);
 
 	const hasAnyStockableModule = allowedAssetTypes.length > 0;
@@ -305,16 +325,17 @@ export default function WastagePage() {
 		{
 			id: "actions",
 			header: "Actions",
-			cell: ({ row }: { row: { original: WastageDetail } }) => (
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-					onClick={() => handleDelete(row.original.id)}
-				>
-					<Trash2 className="h-4 w-4" />
-				</Button>
-			),
+			cell: ({ row }: { row: { original: WastageDetail } }) =>
+				canDeleteWastage ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+						onClick={() => handleDelete(row.original.id)}
+					>
+						<Trash2 className="h-4 w-4" />
+					</Button>
+				) : null,
 		},
 	];
 
@@ -327,13 +348,15 @@ export default function WastagePage() {
 						Track and audit adjustments for spoiled, damaged, or expired stock.
 					</p>
 				</div>
-				<Button
-					onClick={() => setIsCreateOpen(true)}
-					className="gap-2"
-					disabled={!hasAnyStockableModule}
-				>
-					<Plus className="h-4 w-4" /> Log Wastage Adjustment
-				</Button>
+				{canCreateWastage && (
+					<Button
+						onClick={() => setIsCreateOpen(true)}
+						className="gap-2"
+						disabled={!hasAnyStockableModule}
+					>
+						<Plus className="h-4 w-4" /> Log Wastage Adjustment
+					</Button>
+				)}
 			</div>
 
 			<div
@@ -437,12 +460,14 @@ export default function WastagePage() {
 								name="productId"
 								control={control}
 								render={({ field }) => (
-									<SearchableCombobox
+									<ProductSelector
 										value={field.value || ""}
 										onChange={field.onChange}
 										options={productsList.map((p) => ({
 											value: p.id,
 											label: p.name,
+											description: p.barcode ? `Barcode: ${p.barcode}` : null,
+											searchValue: `${p.name} ${p.sku ?? ""} ${p.barcode ?? ""}`,
 										}))}
 										placeholder="Pick retail product"
 										searchPlaceholder="Search product..."

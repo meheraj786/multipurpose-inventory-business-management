@@ -50,6 +50,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	useDashboardCategoryRanking,
@@ -98,19 +99,34 @@ export default function DashboardPage() {
 	const { symbol } = useCurrency();
 	const model = useBusinessModel();
 
-	const showProducts = isModuleAllowedForModel("PRODUCT", model);
-	const showRawProducts = isModuleAllowedForModel("RAW_PRODUCT", model);
-	const showPreparedProducts = isModuleAllowedForModel(
-		"PREPARED_PRODUCT",
-		model,
-	);
-	const showSupplier = isModuleAllowedForModel("SUPPLIER", model);
-	const showPurchase = isModuleAllowedForModel("PURCHASE", model);
-	const showService = isModuleAllowedForModel("SERVICE", model);
+	const canReadSales = useCan("SALE", "READ");
+	const canReadCustomers = useCan("CUSTOMER", "READ");
+	const canReadProducts = useCan("PRODUCT", "READ");
+	const canReadRawProducts = useCan("RAW_PRODUCT", "READ");
+	const canReadPreparedProducts = useCan("PREPARED_PRODUCT", "READ");
+	const canReadSuppliers = useCan("SUPPLIER", "READ");
+	const canReadPurchases = useCan("PURCHASE", "READ");
+	const canReadServices = useCan("SERVICE", "READ");
+	const showProducts =
+		canReadProducts && isModuleAllowedForModel("PRODUCT", model);
+	const showRawProducts =
+		canReadRawProducts && isModuleAllowedForModel("RAW_PRODUCT", model);
+	const showPreparedProducts =
+		canReadPreparedProducts &&
+		isModuleAllowedForModel("PREPARED_PRODUCT", model);
+	const showSupplier =
+		canReadSuppliers &&
+		canReadPurchases &&
+		isModuleAllowedForModel("SUPPLIER", model);
+	const showPurchase =
+		canReadPurchases && isModuleAllowedForModel("PURCHASE", model);
+	const showService =
+		canReadServices && isModuleAllowedForModel("SERVICE", model);
 
+	const canSeeCustomerMetrics = canReadSales && canReadCustomers;
 	const showLowStockCard = showProducts || showRawProducts;
 	const showBestSellersCard =
-		showProducts || showPreparedProducts || showService;
+		canReadSales && (showProducts || showPreparedProducts || showService);
 	const showProcurementRow = showSupplier || showPurchase;
 
 	const [range, setRange] = useState<DateRangePreset>("month");
@@ -130,29 +146,46 @@ export default function DashboardPage() {
 		[range, customStart, customEnd],
 	);
 
-	const { data: stats, isLoading: statsLoading } =
-		useDashboardOverviewStats(queryParams);
+	const { data: stats, isLoading: statsLoading } = useDashboardOverviewStats(
+		queryParams,
+		canSeeCustomerMetrics,
+	);
 	const { data: salesOverview, isLoading: chartLoading } =
-		useDashboardSalesOverview(queryParams);
-	const { data: topCustomers } = useDashboardTopCustomers({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: dueRanking } = useDashboardDueRanking({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: productRanking } = useDashboardProductRanking({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: lowStockAlert } = useDashboardLowStockAlert();
-	const { data: categoryRanking } = useDashboardCategoryRanking(queryParams);
-	const { data: topSuppliers } = useDashboardTopSuppliers({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: purchaseOverview } = useDashboardPurchaseOverview(queryParams);
+		useDashboardSalesOverview(queryParams, canReadSales);
+	const { data: topCustomers } = useDashboardTopCustomers(
+		{
+			...queryParams,
+			limit: 5,
+		},
+		canSeeCustomerMetrics,
+	);
+	const { data: dueRanking } = useDashboardDueRanking(
+		{
+			...queryParams,
+			limit: 5,
+		},
+		canSeeCustomerMetrics,
+	);
+	const { data: productRanking } = useDashboardProductRanking(
+		{ ...queryParams, limit: 5 },
+		canReadSales,
+	);
+	const { data: lowStockAlert } = useDashboardLowStockAlert(showLowStockCard);
+	const { data: categoryRanking } = useDashboardCategoryRanking(
+		queryParams,
+		canReadSales,
+	);
+	const { data: topSuppliers } = useDashboardTopSuppliers(
+		{
+			...queryParams,
+			limit: 5,
+		},
+		showSupplier,
+	);
+	const { data: purchaseOverview } = useDashboardPurchaseOverview(
+		queryParams,
+		showPurchase,
+	);
 
 	const chartData = useMemo(
 		() =>
@@ -281,14 +314,19 @@ export default function DashboardPage() {
 							</div>
 
 							{/* Standard Stats Overview */}
-							<SectionCards
-								stats={stats}
-								loading={statsLoading}
-								symbol={symbol}
-							/>
+							{canSeeCustomerMetrics && (
+								<SectionCards
+									stats={stats}
+									loading={statsLoading}
+									symbol={symbol}
+								/>
+							)}
 
 							{/* Main Analytical Section */}
-							<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+							<div
+								className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+								hidden={!canReadSales}
+							>
 								{/* Sales Interactive Area Line Chart (Spans 2 columns on wide screens) */}
 								<div className="lg:col-span-2">
 									{chartLoading ? (
@@ -406,9 +444,13 @@ export default function DashboardPage() {
 								className={`grid gap-6 md:grid-cols-2 ${
 									showLowStockCard ? "lg:grid-cols-3" : "lg:grid-cols-2"
 								}`}
+								hidden={!canSeeCustomerMetrics && !showLowStockCard}
 							>
 								{/* Top Customers (Visualized Bar chart) */}
-								<Card className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm flex flex-col justify-between">
+								<Card
+									hidden={!canSeeCustomerMetrics}
+									className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm flex flex-col justify-between"
+								>
 									<CardHeader className="pb-3">
 										<div className="flex items-center justify-between">
 											<div className="space-y-0.5">
@@ -433,7 +475,12 @@ export default function DashboardPage() {
 													<BarChart
 														layout="vertical"
 														data={customerChartData}
-														margin={{ top: 5, right: 10, left: -25, bottom: 5 }}
+														margin={{
+															top: 5,
+															right: 10,
+															left: -25,
+															bottom: 5,
+														}}
 													>
 														<XAxis type="number" hide />
 														<YAxis
@@ -482,7 +529,10 @@ export default function DashboardPage() {
 								</Card>
 
 								{/* Outstanding Dues */}
-								<Card className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm">
+								<Card
+									hidden={!canSeeCustomerMetrics}
+									className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm"
+								>
 									<CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
 										<div>
 											<CardTitle className="text-sm font-semibold tracking-tight">

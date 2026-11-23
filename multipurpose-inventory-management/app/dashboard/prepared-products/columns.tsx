@@ -18,6 +18,9 @@ type ColumnMeta = {
 	onEdit: (pp: PreparedProduct) => void;
 	onDelete: (id: string) => void;
 	onProduce: (pp: PreparedProduct) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
+	canProduce: boolean;
 };
 
 export const getPreparedProductColumns = (
@@ -116,21 +119,27 @@ export const getPreparedProductColumns = (
 							<Eye className="mr-2 h-4 w-4" />
 							View Details
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => meta.onProduce(row.original)}>
-							<Zap className="mr-2 h-4 w-4" />
-							Produce Stock
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
-							<Pencil className="mr-2 h-4 w-4" />
-							Edit
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							className="text-destructive"
-							onClick={() => meta.onDelete(row.original.id)}
-						>
-							<Trash2 className="mr-2 h-4 w-4" />
-							Delete
-						</DropdownMenuItem>
+						{meta.canProduce && (
+							<DropdownMenuItem onClick={() => meta.onProduce(row.original)}>
+								<Zap className="mr-2 h-4 w-4" />
+								Produce Stock
+							</DropdownMenuItem>
+						)}
+						{meta.canUpdate && (
+							<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
+								<Pencil className="mr-2 h-4 w-4" />
+								Edit
+							</DropdownMenuItem>
+						)}
+						{meta.canDelete && (
+							<DropdownMenuItem
+								className="text-destructive"
+								onClick={() => meta.onDelete(row.original.id)}
+							>
+								<Trash2 className="mr-2 h-4 w-4" />
+								Delete
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

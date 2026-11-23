@@ -5,7 +5,6 @@ import {
 } from "@/lib/api/services/staff.service";
 import type {
 	CreateStaffForm,
-	PermissionEntry,
 	UpdateStaffForm,
 } from "@/validation/staff.schema";
 
@@ -46,18 +45,6 @@ export const useDeleteStaff = () => {
 	return useMutation({
 		mutationFn: (id: string) => StaffService.remove(id),
 		onSuccess: () => qc.invalidateQueries({ queryKey: [STAFF_KEY] }),
-	});
-};
-
-export const useUpdatePermissions = (staffId: string) => {
-	const qc = useQueryClient();
-	return useMutation({
-		mutationFn: (permissions: PermissionEntry[]) =>
-			StaffService.updatePermissions(staffId, permissions),
-		onSuccess: () => {
-			qc.invalidateQueries({ queryKey: [STAFF_KEY, staffId] });
-			qc.invalidateQueries({ queryKey: [STAFF_KEY] });
-		},
 	});
 };
 

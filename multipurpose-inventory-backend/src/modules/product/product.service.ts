@@ -14,6 +14,13 @@ const createProduct = async (
   accountId: string,
   userId: string,
 ): Promise<Product> => {
+  if (data.barcode) {
+    const existing = await prisma.product.findFirst({
+      where: { barcode: data.barcode, accountId },
+    });
+    if (existing) throw new Error("A product with this barcode already exists");
+  }
+
   if (data.sku) {
     const existing = await prisma.product.findFirst({
       where: { sku: data.sku, accountId, isDeleted: false },
@@ -66,6 +73,7 @@ const getAllProducts = async (
       OR: [
         { name: { contains: search, mode: "insensitive" } },
         { sku: { contains: search, mode: "insensitive" } },
+        { barcode: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
       ],
     }),
@@ -143,6 +151,27 @@ const getSingleProduct = async (id: string, accountId: string) => {
   return { ...product, totalStock };
 };
 
+const getProductByBarcode = async (barcode: string, accountId: string) => {
+  const product = await prisma.product.findFirst({
+    where: { barcode, accountId, isDeleted: false },
+    include: {
+      category: true,
+      subCategory: true,
+      unit: true,
+      productStocks: {
+        where: { isDeleted: false },
+        select: { quantity: true },
+      },
+    },
+  });
+  if (!product) return null;
+
+  return {
+    ...product,
+    totalStock: product.productStocks.reduce((sum, stock) => sum + Number(stock.quantity), 0),
+  };
+};
+
 const updateProduct = async (
   id: string,
   accountId: string,
@@ -159,6 +188,15 @@ const updateProduct = async (
       where: { sku: data.sku, accountId, isDeleted: false, NOT: { id } },
     });
     if (skuConflict) throw new Error("A product with this SKU already exists");
+  }
+
+  if (data.barcode && data.barcode !== existing.barcode) {
+    const barcodeConflict = await prisma.product.findFirst({
+      where: { barcode: data.barcode, accountId, NOT: { id } },
+    });
+    if (barcodeConflict) {
+      throw new Error("A product with this barcode already exists");
+    }
   }
 
   if (data.unitId) {
@@ -298,6 +336,7 @@ export const ProductService = {
   createProduct,
   getAllProducts,
   getSingleProduct,
+  getProductByBarcode,
   updateProduct,
   deleteProduct,
   stockIn,

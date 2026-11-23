@@ -7,6 +7,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ProductSelector } from "@/components/ui/product-selector";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import {
@@ -185,7 +186,7 @@ export function CreatePurchaseModal({ initialProductId, onClose }: Props) {
 
 							<Field>
 								<FieldLabel>Product</FieldLabel>
-								<SearchableCombobox
+								<ProductSelector
 									value={items[index]?.productId ?? ""}
 									onChange={(value) =>
 										setValue(`items.${index}.productId`, value, {
@@ -196,6 +197,10 @@ export function CreatePurchaseModal({ initialProductId, onClose }: Props) {
 									options={products.map((product) => ({
 										value: product.id,
 										label: product.name,
+										description: product.barcode
+											? `Barcode: ${product.barcode}`
+											: null,
+										searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 									}))}
 									placeholder="Select product"
 									searchPlaceholder="Search product..."

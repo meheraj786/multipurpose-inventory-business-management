@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useModelGuard } from "@/hooks/useModelGuard";
@@ -106,6 +107,16 @@ function ProductFormFields({
 					</FormRow>
 					<FormRow label="SKU" error={errors.sku?.message as string}>
 						<Input placeholder="e.g. APL-001" {...register("sku")} />
+					</FormRow>
+					<FormRow
+						label="Barcode (optional)"
+						error={errors.barcode?.message as string}
+					>
+						<Input
+							placeholder="Scan or enter barcode"
+							autoFocus
+							{...register("barcode")}
+						/>
 					</FormRow>
 				</div>
 			</div>
@@ -291,6 +302,9 @@ export default function ProductsPage() {
 	const [isCreateOpen, setIsCreateOpen] = useState(false);
 	const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 	const { symbol } = useCurrency();
+	const canCreate = useCan("PRODUCT", "CREATE");
+	const canUpdate = useCan("PRODUCT", "UPDATE");
+	const canDelete = useCan("PRODUCT", "DELETE");
 
 	const { data: productsData, isLoading } = useGetProducts({
 		page,
@@ -333,6 +347,7 @@ export default function ProductsPage() {
 				name: editingProduct.name,
 				description: editingProduct.description || "",
 				sku: editingProduct.sku || "",
+				barcode: editingProduct.barcode || "",
 				tax: editingProduct.tax || undefined,
 				defaultSalePrice: editingProduct.defaultSalePrice || undefined,
 				lowStockAlert: editingProduct.lowStockAlert || undefined,
@@ -347,10 +362,15 @@ export default function ProductsPage() {
 	const columns = useMemo(
 		() =>
 			getProductColumns(
-				{ onEdit: setEditingProduct, onDelete: deleteProduct },
+				{
+					onEdit: setEditingProduct,
+					onDelete: deleteProduct,
+					canUpdate,
+					canDelete,
+				},
 				symbol,
 			),
-		[deleteProduct, symbol],
+		[canDelete, canUpdate, deleteProduct, symbol],
 	);
 
 	const handleCreateSubmit = (values: CreateProductForm) => {
@@ -359,6 +379,7 @@ export default function ProductsPage() {
 			subCategoryId:
 				values.subCategoryId === "" ? undefined : values.subCategoryId,
 			unitId: values.unitId === "" ? undefined : values.unitId,
+			barcode: values.barcode?.trim() || undefined,
 		};
 		createProduct(cleanedValues).then(() => {
 			createFormMethods.reset();
@@ -373,6 +394,7 @@ export default function ProductsPage() {
 			subCategoryId:
 				values.subCategoryId === "" ? undefined : values.subCategoryId,
 			unitId: values.unitId === "" ? undefined : values.unitId,
+			barcode: values.barcode?.trim() || null,
 		};
 		updateProduct({ id: editingProduct.id, ...cleanedValues }).then(() => {
 			editFormMethods.reset();
@@ -420,10 +442,12 @@ export default function ProductsPage() {
 						</button>
 					)}
 				</div>
-				<Button onClick={() => setIsCreateOpen(true)}>
-					<Plus className="h-4 w-4 mr-1.5" />
-					Add Product
-				</Button>
+				{canCreate && (
+					<Button onClick={() => setIsCreateOpen(true)}>
+						<Plus className="h-4 w-4 mr-1.5" />
+						Add Product
+					</Button>
+				)}
 			</div>
 
 			<DataTable

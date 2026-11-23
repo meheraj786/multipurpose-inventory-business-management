@@ -28,6 +28,8 @@ type ColumnMeta = {
 	onDelete: (sale: Sale) => void;
 	onCollectDue: (sale: Sale) => void;
 	onViewInvoice: (invoice: SaleInvoice, sale: Sale) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
 };
 
 export const getSaleColumns = (
@@ -178,11 +180,13 @@ export const getSaleColumns = (
 								View Details
 							</Link>
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => meta.onEdit(sale)}>
-							<Edit className="mr-2 h-4 w-4" />
-							Edit Details
-						</DropdownMenuItem>
-						{hasDue && (
+						{meta.canUpdate && (
+							<DropdownMenuItem onClick={() => meta.onEdit(sale)}>
+								<Edit className="mr-2 h-4 w-4" />
+								Edit Details
+							</DropdownMenuItem>
+						)}
+						{meta.canUpdate && hasDue && (
 							<>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem
@@ -195,14 +199,18 @@ export const getSaleColumns = (
 								</DropdownMenuItem>
 							</>
 						)}
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							className="text-destructive focus:text-destructive"
-							onClick={() => meta.onDelete(sale)}
-						>
-							<Trash2 className="mr-2 h-4 w-4" />
-							Delete
-						</DropdownMenuItem>
+						{meta.canDelete && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem
+									className="text-destructive focus:text-destructive"
+									onClick={() => meta.onDelete(sale)}
+								>
+									<Trash2 className="mr-2 h-4 w-4" />
+									Delete
+								</DropdownMenuItem>
+							</>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

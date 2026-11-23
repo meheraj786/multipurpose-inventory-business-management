@@ -3,9 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { BarcodeScanner } from "@/components/ui/barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ProductSelector } from "@/components/ui/product-selector";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetCustomers } from "@/hooks/useCustomer";
@@ -106,6 +108,29 @@ export function CreateSaleModal({ onClose }: Props) {
 		0,
 		itemsTotal + servicesTotal - Number(watchedDiscount),
 	);
+
+	const handleScannedProduct = (product: (typeof products)[number]) => {
+		const existingIndex = watchedItems.findIndex(
+			(item) => item?.productId === product.id,
+		);
+		if (existingIndex >= 0) {
+			setValue(
+				`saleItems.${existingIndex}.quantity`,
+				Number(watchedItems[existingIndex]?.quantity ?? 0) + 1,
+				{ shouldDirty: true, shouldValidate: true },
+			);
+			return;
+		}
+
+		appendItem({
+			productId: product.id,
+			unitId: product.unitId ?? "",
+			quantity: 1,
+			sellPrice: Number(product.defaultSalePrice ?? 0),
+			discount: 0,
+			itemType: "PRODUCT",
+		});
+	};
 
 	const handleMethodChange = (method: string) => {
 		setValue("paymentMethod", method as PaymentMethod);
@@ -243,6 +268,12 @@ export function CreateSaleModal({ onClose }: Props) {
 			{/* Products Section */}
 			{showItems && (
 				<div>
+					<div className="mb-4">
+						<FieldLabel className="text-xs">Scan product barcode</FieldLabel>
+						<div className="mt-1">
+							<BarcodeScanner autoFocus onProduct={handleScannedProduct} />
+						</div>
+					</div>
 					<div className="flex items-center justify-between pb-2 border-b mb-4">
 						<p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
 							Products
@@ -274,7 +305,7 @@ export function CreateSaleModal({ onClose }: Props) {
 								{/* ... existing fields (Product, Unit, Qty, Price) ... */}
 								<div className="col-span-4">
 									<FieldLabel className="text-xs">Product</FieldLabel>
-									<SearchableCombobox
+									<ProductSelector
 										value={watchedItems[index]?.productId ?? ""}
 										onChange={(value) => {
 											const prod = products.find((p) => p.id === value);
@@ -296,11 +327,18 @@ export function CreateSaleModal({ onClose }: Props) {
 												}
 											}
 										}}
+										showBarcodeScanner={false}
 										options={products.map((product) => ({
 											value: product.id,
 											label: product.name,
-											description: product.sku ? `SKU: ${product.sku}` : null,
-											searchValue: `${product.name} ${product.sku ?? ""}`,
+											description:
+												[
+													product.sku && `SKU: ${product.sku}`,
+													product.barcode && `Barcode: ${product.barcode}`,
+												]
+													.filter(Boolean)
+													.join(" · ") || null,
+											searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 										}))}
 										placeholder="Select product..."
 										searchPlaceholder="Search product..."

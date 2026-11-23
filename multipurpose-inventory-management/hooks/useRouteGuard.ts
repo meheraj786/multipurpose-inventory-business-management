@@ -6,7 +6,7 @@ import { useAuthStore } from "@/lib/store/useAuthStore";
 // Route to module mapping for permission checking
 const ROUTE_MODULE_MAP: Record<string, string> = {
 	"/dashboard/products": "PRODUCT",
-	"/dashboard/inventory": "STOCK",
+	"/dashboard/inventory": "PRODUCT",
 	"/dashboard/suppliers": "SUPPLIER",
 	"/dashboard/purchases": "PURCHASE",
 	"/dashboard/services": "SERVICE",
@@ -14,16 +14,19 @@ const ROUTE_MODULE_MAP: Record<string, string> = {
 	"/dashboard/prepared-products": "PREPARED_PRODUCT",
 	"/dashboard/customers": "CUSTOMER",
 	"/dashboard/sales": "SALE",
+	"/dashboard/wastage": "WASTAGE",
 	"/dashboard/categories": "CATEGORY",
 	"/dashboard/subCategories": "SUBCATEGORY",
+	"/dashboard/trash": "TRASH",
+	"/dashboard/activityLog": "ACTIVITY_LOG",
 };
 
 // Admin-only routes
 const ADMIN_ROUTES = [
 	"/dashboard/staff",
-	"/dashboard/activityLog",
-	"/dashboard/trash",
+	"/dashboard/roles",
 	"/dashboard/settings",
+	"/dashboard/assistant",
 ];
 
 /**
@@ -56,12 +59,13 @@ export function useRouteGuard() {
 		// ─── STAFF-specific checks ─────────────────────────────────────────────────
 		if (isStaff) {
 			// Check if this route requires a specific module permission
-			const requiredModule = ROUTE_MODULE_MAP[pathname];
+			const requiredModule = Object.entries(ROUTE_MODULE_MAP).find(
+				([route]) => pathname === route || pathname.startsWith(`${route}/`),
+			)?.[1];
 
 			if (requiredModule) {
-				// Check if staff has permission for this module
 				const hasPermission = user.permissions?.some(
-					(p) => p.module === requiredModule,
+					(p) => p.module === requiredModule && p.actions.includes("READ"),
 				);
 
 				if (!hasPermission) {

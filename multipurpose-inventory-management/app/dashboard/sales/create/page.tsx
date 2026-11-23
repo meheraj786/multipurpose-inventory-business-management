@@ -23,12 +23,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import DataTable, { type PaginationParams } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
+import { BarcodeScanner } from "@/components/ui/barcode-scanner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { ProductSelector } from "@/components/ui/product-selector";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Separator } from "@/components/ui/separator";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useCreateCustomer, useGetCustomers } from "@/hooks/useCustomer";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
@@ -77,6 +80,10 @@ const PAYMENT_ICONS: Record<string, React.ReactNode> = {
 
 export default function CreateSalePage() {
 	const router = useRouter();
+	const canCreateSale = useCan("SALE", "CREATE");
+	const canCreateCustomer = useCan("CUSTOMER", "CREATE");
+	const canUpdateSale = useCan("SALE", "UPDATE");
+	const canDeleteSale = useCan("SALE", "DELETE");
 	const formRef = useRef<HTMLFormElement>(null);
 	const [_editTarget, setEditTarget] = useState<Sale | null>(null);
 	const [_deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
@@ -100,10 +107,12 @@ export default function CreateSalePage() {
 					onDelete: (sale) => setDeleteTarget(sale),
 					onCollectDue: (sale) => setDueTarget(sale),
 					onViewInvoice: (invoice) => setViewInvoice(invoice),
+					canUpdate: canUpdateSale,
+					canDelete: canDeleteSale,
 				},
 				symbol,
 			),
-		[symbol],
+		[symbol, canUpdateSale, canDeleteSale],
 	);
 
 	const showItems = modelHasItems(model);
@@ -132,8 +141,8 @@ export default function CreateSalePage() {
 			itemType: "PRODUCT" as const,
 			id: product.id,
 			label: product.name,
-			description: `Product · ${symbol}${Number(product.defaultSalePrice ?? 0).toFixed(2)} · ${product.totalStock ?? 0} in stock`,
-			searchValue: `${product.name} ${product.sku ?? ""}`,
+			description: `Product · ${symbol}${Number(product.defaultSalePrice ?? 0).toFixed(2)} · ${product.totalStock ?? 0} in stock${product.barcode ? ` · Barcode: ${product.barcode}` : ""}`,
+			searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 			stock: product.totalStock ?? 0,
 			unitId: product.unitId ?? "",
 			sellPrice: Number(product.defaultSalePrice ?? 0),
@@ -279,6 +288,31 @@ export default function CreateSalePage() {
 		trigger(`saleItems.${index}.productId`);
 	};
 
+	const handleScannedProduct = (product: (typeof products)[number]) => {
+		const existingIndex = watchedItems.findIndex(
+			(item) =>
+				item?.itemType !== "PREPARED_PRODUCT" && item?.productId === product.id,
+		);
+		if (existingIndex >= 0) {
+			setValue(
+				`saleItems.${existingIndex}.quantity`,
+				Number(watchedItems[existingIndex]?.quantity ?? 0) + 1,
+				{ shouldDirty: true, shouldValidate: true },
+			);
+			return;
+		}
+
+		appendItem({
+			itemType: "PRODUCT",
+			productId: product.id,
+			preparedProductId: "",
+			unitId: product.unitId ?? "",
+			quantity: 1,
+			sellPrice: Number(product.defaultSalePrice ?? 0),
+			discount: 0,
+		});
+	};
+
 	const getSelectedItemValue = (index: number) => {
 		const row = watchedItems[index];
 		if (!row) return "";
@@ -321,6 +355,7 @@ export default function CreateSalePage() {
 	}, [goBack]);
 
 	const handleCreateCustomer = () => {
+		if (!canCreateCustomer) return;
 		if (!newCustomerPhone.trim()) return;
 		createCustomer(
 			{
@@ -343,6 +378,8 @@ export default function CreateSalePage() {
 	};
 
 	const onSubmit = (values: CreateSaleForm) => {
+		if (!canCreateSale) return;
+
 		const collectedNow = Math.max(0, grandTotal - Number(values.due ?? 0));
 		const payments = singleTransactional
 			? [
@@ -380,12 +417,16 @@ export default function CreateSalePage() {
 			description: customer.phone,
 			searchValue: `${customer.name} ${customer.phone ?? ""}`,
 		})),
-		{
-			value: "__new__",
-			label: "➕ Register New Profile",
-			description: "Add customer profile inline",
-			searchValue: "new customer register",
-		},
+		...(canCreateCustomer
+			? [
+					{
+						value: "__new__",
+						label: "➕ Register New Profile",
+						description: "Add customer profile inline",
+						searchValue: "new customer register",
+					},
+				]
+			: []),
 	];
 
 	return (
@@ -429,7 +470,7 @@ export default function CreateSalePage() {
 						<Button
 							type="submit"
 							form="create-sale-form"
-							disabled={isPending}
+							disabled={isPending || !canCreateSale}
 							size="sm"
 							className="h-9 text-xs font-semibold px-4"
 						>
@@ -551,7 +592,9 @@ export default function CreateSalePage() {
 												size="sm"
 												onClick={handleCreateCustomer}
 												disabled={
-													isCreatingCustomer || !newCustomerPhone.trim()
+													!canCreateCustomer ||
+													isCreatingCustomer ||
+													!newCustomerPhone.trim()
 												}
 												className="h-8 text-xs px-3"
 											>
@@ -614,6 +657,19 @@ export default function CreateSalePage() {
 									</Button>
 								</CardHeader>
 								<CardContent>
+									{showItems && (
+										<div className="mb-4">
+											<FieldLabel className="text-[10px] font-bold uppercase tracking-wider">
+												Scan product barcode
+											</FieldLabel>
+											<div className="mt-1">
+												<BarcodeScanner
+													autoFocus
+													onProduct={handleScannedProduct}
+												/>
+											</div>
+										</div>
+									)}
 									{itemFields.length === 0 ? (
 										<EmptyRow
 											label={`No ${itemsCardTitle.toLowerCase()} selected yet. Click append row to add.`}
@@ -630,11 +686,12 @@ export default function CreateSalePage() {
 															Item Name
 														</FieldLabel>
 														<div className="mt-1">
-															<SearchableCombobox
+															<ProductSelector
 																value={getSelectedItemValue(index)}
 																onChange={(value) =>
 																	handleItemSelect(index, value)
 																}
+																showBarcodeScanner={false}
 																options={itemOptions.map((o) => ({
 																	value: o.value,
 																	label: o.label,

@@ -15,6 +15,7 @@ export const createProductSchema = z.object({
 	name: z.string().min(2, "Name must be at least 2 characters").max(100),
 	description: z.string().optional(),
 	sku: z.string().optional(),
+	barcode: z.string().trim().optional(),
 	tax: optionalPrice,
 	defaultSalePrice: optionalPrice,
 	lowStockAlert: z.string().optional(),
@@ -23,7 +24,9 @@ export const createProductSchema = z.object({
 	img: z.string().optional(),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+export const updateProductSchema = createProductSchema
+	.extend({ barcode: z.string().trim().nullable().optional() })
+	.partial();
 
 export const stockInSchema = z.object({
 	quantity: z.coerce.number().int().min(1, "Quantity must be at least 1"),

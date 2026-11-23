@@ -8,6 +8,7 @@ import {
 	RETAIL_NAV,
 	SERVICE_NAV,
 	SHARED_BUSINESS_NAV,
+	STAFF_ADMIN_NAV,
 	TAXONOMY_NAV,
 } from "./navigation";
 
@@ -50,7 +51,15 @@ export function resolveNavGroups(user: AuthUser | null): NavGroup[] {
 
 	const filterByPermission = (items: NavItem[]): NavItem[] => {
 		if (isAdmin) return items;
-		return items.filter((item) => permittedModules.has(item.module));
+		return items.filter(
+			(item) =>
+				permittedModules.has(item.module) &&
+				(user.permissions ?? []).some(
+					(permission) =>
+						permission.module === item.module &&
+						permission.actions.includes("READ"),
+				),
+		);
 	};
 
 	// 3. Build groups
@@ -70,10 +79,11 @@ export function resolveNavGroups(user: AuthUser | null): NavGroup[] {
 	];
 
 	// 4. Admin group — only shown to ADMIN/DEVELOPER
-	if (isAdmin) {
+	const adminItems = isAdmin ? ADMIN_NAV : filterByPermission(STAFF_ADMIN_NAV);
+	if (adminItems.length > 0) {
 		groups.push({
 			title: "Administration",
-			items: ADMIN_NAV,
+			items: adminItems,
 		});
 	}
 

@@ -18,6 +18,9 @@ type ColumnMeta = {
 	onEdit: (rawProduct: RawProduct) => void;
 	onDelete: (id: string) => void;
 	onStockIn: (rawProduct: RawProduct) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
+	canStockIn: boolean;
 };
 
 export const getRawProductColumns = (
@@ -111,21 +114,27 @@ export const getRawProductColumns = (
 							<Eye className="mr-2 h-4 w-4" />
 							View Details
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => meta.onStockIn(row.original)}>
-							<PackagePlus className="mr-2 h-4 w-4" />
-							Stock In
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
-							<Pencil className="mr-2 h-4 w-4" />
-							Edit
-						</DropdownMenuItem>
-						<DropdownMenuItem
-							className="text-destructive"
-							onClick={() => meta.onDelete(row.original.id)}
-						>
-							<Trash2 className="mr-2 h-4 w-4" />
-							Delete
-						</DropdownMenuItem>
+						{meta.canStockIn && (
+							<DropdownMenuItem onClick={() => meta.onStockIn(row.original)}>
+								<PackagePlus className="mr-2 h-4 w-4" />
+								Stock In
+							</DropdownMenuItem>
+						)}
+						{meta.canUpdate && (
+							<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
+								<Pencil className="mr-2 h-4 w-4" />
+								Edit
+							</DropdownMenuItem>
+						)}
+						{meta.canDelete && (
+							<DropdownMenuItem
+								className="text-destructive"
+								onClick={() => meta.onDelete(row.original.id)}
+							>
+								<Trash2 className="mr-2 h-4 w-4" />
+								Delete
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

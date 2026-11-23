@@ -21,6 +21,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { SearchableCombobox } from "@/components/ui/searchable-combobox";
+import { useGetRoles } from "@/hooks/useRoles";
 import {
 	type StaffMember,
 	useCreateStaff,
@@ -35,18 +37,15 @@ import {
 	updateStaffSchema,
 } from "@/validation/staff.schema";
 import { getStaffColumns } from "./columns";
-import { PermissionsMatrix } from "./permissionMatrix";
 
 export default function StaffPage() {
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editStaff, setEditStaff] = useState<StaffMember | null>(null);
 	const [deleteId, setDeleteId] = useState<string | null>(null);
-	const [permissionStaff, setPermissionStaff] = useState<StaffMember | null>(
-		null,
-	);
 	const [tableParams, setTableParams] = useState({ page: 1, pageSize: 10 });
 
 	const { data: result, isLoading } = useGetStaff(tableParams);
+	const { data: roles = [] } = useGetRoles();
 	const { mutate: createStaff, isPending: isCreating } = useCreateStaff();
 	const { mutate: updateStaff, isPending: isUpdating } = useUpdateStaff();
 	const { mutate: deleteStaff, isPending: isDeleting } = useDeleteStaff();
@@ -57,7 +56,7 @@ export default function StaffPage() {
 	// Add Staff Form
 	const createForm = useForm<CreateStaffForm>({
 		resolver: zodResolver(createStaffSchema),
-		defaultValues: { name: "", email: "", password: "" },
+		defaultValues: { name: "", email: "", password: "", customRoleId: null },
 	});
 
 	// Edit Staff Form
@@ -71,24 +70,32 @@ export default function StaffPage() {
 			editForm.reset({
 				name: editStaff.name ?? "",
 				email: editStaff.email,
+				customRoleId: editStaff.customRoleId,
 			});
 		}
 	}, [editStaff, editForm]);
 
 	const onAddStaffSubmit = (values: CreateStaffForm) => {
-		createStaff(values, {
-			onSuccess: () => {
-				setCreateOpen(false);
-				createForm.reset();
-				toast.success("Staff member created successfully");
+		createStaff(
+			{ ...values, customRoleId: values.customRoleId || null },
+			{
+				onSuccess: () => {
+					setCreateOpen(false);
+					createForm.reset();
+					toast.success("Staff member created successfully");
+				},
 			},
-		});
+		);
 	};
 
 	const onEditStaffSubmit = (values: UpdateStaffForm) => {
 		if (!editStaff) return;
 		updateStaff(
-			{ id: editStaff.id, ...values },
+			{
+				id: editStaff.id,
+				...values,
+				customRoleId: values.customRoleId || null,
+			},
 			{
 				onSuccess: () => {
 					setEditStaff(null);
@@ -112,7 +119,6 @@ export default function StaffPage() {
 		() =>
 			getStaffColumns({
 				onEdit: (staff) => setEditStaff(staff),
-				onManagePermissions: (staff) => setPermissionStaff(staff),
 				onDelete: (id) => setDeleteId(id),
 			}),
 		[],
@@ -127,8 +133,14 @@ export default function StaffPage() {
 					value={totalCount.toString()}
 					icon={Users}
 				/>
-				<MetricCard title="Active Plans" value="Premium" icon={Shield} />
-				<MetricCard title="System Role" value="Admin" icon={Shield} />
+				<MetricCard title="Custom Roles" value={roles.length} icon={Shield} />
+				<MetricCard
+					title="Assigned Staff"
+					value={
+						staffList.filter((staff: StaffMember) => staff.customRoleId).length
+					}
+					icon={Users}
+				/>
 			</div>
 
 			<div className="flex justify-between items-center">
@@ -182,6 +194,23 @@ export default function StaffPage() {
 								{createForm.formState.errors.password.message}
 							</FieldError>
 						)}
+					</Field>
+					<Field>
+						<FieldLabel>Access Role</FieldLabel>
+						<SearchableCombobox
+							value={createForm.watch("customRoleId") ?? ""}
+							onChange={(value) =>
+								createForm.setValue("customRoleId", value || null)
+							}
+							options={roles.map((role) => ({
+								value: role.id,
+								label: role.name,
+							}))}
+							placeholder="No role (no module access)"
+							searchPlaceholder="Search roles..."
+							emptyText="No role found."
+							clearLabel="No role (no module access)"
+						/>
 					</Field>
 					<div className="flex justify-end gap-2 pt-4">
 						<Button
@@ -239,6 +268,23 @@ export default function StaffPage() {
 							</FieldError>
 						)}
 					</Field>
+					<Field>
+						<FieldLabel>Access Role</FieldLabel>
+						<SearchableCombobox
+							value={editForm.watch("customRoleId") ?? ""}
+							onChange={(value) =>
+								editForm.setValue("customRoleId", value || null)
+							}
+							options={roles.map((role) => ({
+								value: role.id,
+								label: role.name,
+							}))}
+							placeholder="No role (no module access)"
+							searchPlaceholder="Search roles..."
+							emptyText="No role found."
+							clearLabel="No role (no module access)"
+						/>
+					</Field>
 					<div className="flex justify-end gap-2 pt-4">
 						<Button
 							type="button"
@@ -252,22 +298,6 @@ export default function StaffPage() {
 						</Button>
 					</div>
 				</form>
-			</Modal>
-
-			<Modal
-				open={!!permissionStaff}
-				onOpenChange={(open) => !open && setPermissionStaff(null)}
-				title="Manage Staff Permissions"
-				className="  h-[90vh] flex flex-col"
-			>
-				{permissionStaff && (
-					<PermissionsMatrix
-						staffId={permissionStaff.id}
-						staffEmail={permissionStaff.email}
-						existingPermissions={permissionStaff.permissions || []}
-						onClose={() => setPermissionStaff(null)}
-					/>
-				)}
 			</Modal>
 
 			{/* Delete Confirmation */}

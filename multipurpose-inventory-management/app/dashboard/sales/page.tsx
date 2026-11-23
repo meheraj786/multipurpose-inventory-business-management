@@ -33,6 +33,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	type Sale,
@@ -85,6 +86,9 @@ export default function SalesPage() {
 	const [activeInvoice, setActiveInvoice] = useState<SaleInvoice | null>(null);
 	const [activeInvoiceSale, setActiveInvoiceSale] = useState<Sale | null>(null);
 	const { symbol } = useCurrency();
+	const canCreate = useCan("SALE", "CREATE");
+	const canUpdate = useCan("SALE", "UPDATE");
+	const canDelete = useCan("SALE", "DELETE");
 
 	// Filter state
 	const [datePreset, setDatePreset] = useState<DatePreset>("all");
@@ -139,10 +143,12 @@ export default function SalesPage() {
 						setActiveInvoice(invoice);
 						setActiveInvoiceSale(sale);
 					},
+					canUpdate,
+					canDelete,
 				},
 				symbol,
 			),
-		[symbol],
+		[symbol, canUpdate, canDelete],
 	);
 
 	return (
@@ -170,11 +176,13 @@ export default function SalesPage() {
 				/>
 			</div>
 
-			<div className="flex justify-end">
-				<Link href="/dashboard/sales/create">
-					<Button>+ Create Sale</Button>
-				</Link>
-			</div>
+			{canCreate && (
+				<div className="flex justify-end">
+					<Link href="/dashboard/sales/create">
+						<Button>+ Create Sale</Button>
+					</Link>
+				</div>
+			)}
 			{/* Filter bar */}
 			<div className="flex flex-wrap items-end gap-4 p-4 bg-muted/30 rounded-lg">
 				<div className="space-y-1">

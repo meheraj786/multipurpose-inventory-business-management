@@ -41,6 +41,7 @@ export type Product = {
 	name: string;
 	description: string | null;
 	sku: string | null;
+	barcode?: string | null;
 	tax: number | null;
 	defaultPurchasePrice: number | null;
 	defaultSalePrice: number | null;
@@ -82,8 +83,18 @@ export type StockSummary = {
 const getAll = async (
 	params: ProductQueryParams,
 ): Promise<ProductListResponse> => {
-	const { data } = await api.get("/products", { params });
+	const { page, pageSize, ...filters } = params;
+	const { data } = await api.get("/products", {
+		params: { ...filters, page, limit: pageSize },
+	});
 	return data;
+};
+
+const findByBarcode = async (barcode: string): Promise<Product | null> => {
+	const { data } = await api.get(
+		`/products/barcode/${encodeURIComponent(barcode)}`,
+	);
+	return data.data;
 };
 
 const getOne = async (id: string): Promise<Product> => {
@@ -123,6 +134,7 @@ const getStockSummary = async (productId: string): Promise<StockSummary> => {
 
 export const ProductApiService = {
 	getAll,
+	findByBarcode,
 	getOne,
 	create,
 	update,

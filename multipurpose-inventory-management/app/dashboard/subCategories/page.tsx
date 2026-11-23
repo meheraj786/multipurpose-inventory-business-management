@@ -17,6 +17,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import {
 	useDeleteSubCategory,
@@ -26,6 +27,9 @@ import type { SubCategoryData } from "@/validation/subcategory.schema";
 import { createSubCategoryColumns } from "./columns";
 
 export default function SubCategoryPage() {
+	const canCreate = useCan("SUBCATEGORY", "CREATE");
+	const canUpdate = useCan("SUBCATEGORY", "UPDATE");
+	const canDelete = useCan("SUBCATEGORY", "DELETE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -56,8 +60,10 @@ export default function SubCategoryPage() {
 			createSubCategoryColumns({
 				onEdit: (sub) => setEditTarget(sub),
 				onDelete: (sub) => setDeleteTarget(sub),
+				canUpdate,
+				canDelete,
 			}),
-		[],
+		[canUpdate, canDelete],
 	);
 
 	return (
@@ -80,7 +86,7 @@ export default function SubCategoryPage() {
 			<Modal
 				open={createOpen}
 				onOpenChange={setCreateOpen}
-				trigger={<Button>+ New Subcategory</Button>}
+				trigger={canCreate ? <Button>+ New Subcategory</Button> : undefined}
 				title="Create Subcategory"
 			>
 				<SubCategoryFormModal onClose={() => setCreateOpen(false)} />

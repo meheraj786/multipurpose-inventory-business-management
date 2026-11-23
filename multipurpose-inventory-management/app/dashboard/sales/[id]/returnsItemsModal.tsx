@@ -4,6 +4,7 @@ import { AlertTriangle, Layers, RotateCcw } from "lucide-react";
 import { useMemo } from "react";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
+import { BarcodeScannerInput } from "@/components/appComponents/BarcodeScannerInput";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -67,14 +68,23 @@ export function ReturnItemsModal({ sale, onClose }: Props) {
 	}, [sale.customerReturns]);
 
 	const initialItems = useMemo((): FormReturnItem[] => {
+		const remainingReturned = new Map(alreadyReturnedMap);
+
 		return sale.saleItems.map((item) => {
 			const key = itemKey(
 				item.itemType as "PRODUCT" | "PREPARED_PRODUCT",
 				item.productId,
 				item.preparedProductId,
 			);
-			const alreadyReturned = alreadyReturnedMap.get(key) ?? 0;
-			const maxQty = Math.max(0, Number(item.quantity) - alreadyReturned);
+			const returnedForItem = Math.min(
+				Number(item.quantity),
+				remainingReturned.get(key) ?? 0,
+			);
+			remainingReturned.set(
+				key,
+				Math.max(0, (remainingReturned.get(key) ?? 0) - returnedForItem),
+			);
+			const maxQty = Math.max(0, Number(item.quantity) - returnedForItem);
 
 			return {
 				selected: false,
@@ -84,13 +94,13 @@ export function ReturnItemsModal({ sale, onClose }: Props) {
 				name: item.product?.name ?? item.preparedProduct?.name ?? "Item",
 				quantity: maxQty > 0 ? 1 : 0,
 				maxQty,
-				alreadyReturned,
+				alreadyReturned: returnedForItem,
 				unitPrice: Number(item.sellPrice),
 			};
 		});
 	}, [sale, alreadyReturnedMap]);
 
-	const { handleSubmit, control } = useForm<{
+	const { handleSubmit, control, getValues, setValue } = useForm<{
 		saleId: string;
 		items: FormReturnItem[];
 		restocked: boolean;
@@ -110,6 +120,42 @@ export function ReturnItemsModal({ sale, onClose }: Props) {
 	});
 
 	const watchedItems = useWatch({ control, name: "items" }) || [];
+
+	const selectScannedReturnItem = async (barcode: string) => {
+		const matchingSaleItems = sale.saleItems.filter(
+			(item) =>
+				item.itemType === "PRODUCT" && item.product?.barcode === barcode,
+		);
+		if (matchingSaleItems.length === 0) {
+			throw new Error("This barcode is not part of this sale");
+		}
+
+		const currentItems = getValues("items");
+		const itemIndex = currentItems.findIndex(
+			(item) =>
+				matchingSaleItems.some(
+					(saleItem) => saleItem.productId === item.productId,
+				) &&
+				item.maxQty > 0 &&
+				Number(item.quantity) < item.maxQty,
+		);
+		if (itemIndex < 0) {
+			throw new Error("The maximum returnable quantity has been reached");
+		}
+
+		const item = getValues(`items.${itemIndex}`);
+		if (!item) throw new Error("This product cannot be returned");
+		const quantity = Number(item.quantity) || 0;
+
+		setValue(`items.${itemIndex}.selected`, true, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+		setValue(`items.${itemIndex}.quantity`, quantity + 1, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+	};
 
 	const totalRefundValue = useMemo(() => {
 		return watchedItems.reduce((sum, item) => {
@@ -186,6 +232,7 @@ export function ReturnItemsModal({ sale, onClose }: Props) {
 				<Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
 					Purchased Items List
 				</Label>
+				<BarcodeScannerInput onScan={selectScannedReturnItem} autoFocus />
 				<div className="border rounded-lg overflow-hidden">
 					<Table>
 						<TableHeader className="bg-muted/40">

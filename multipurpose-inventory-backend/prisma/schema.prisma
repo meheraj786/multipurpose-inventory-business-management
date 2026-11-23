@@ -246,6 +246,7 @@ model Product {
   img                  String?
   description          String?
   sku                  String?
+  barcode              String?
   tax                  Decimal?
   defaultPurchasePrice Decimal?
   defaultSalePrice     Decimal?
@@ -272,6 +273,7 @@ model Product {
   @@index([categoryId])
   @@index([name])
   @@index([sku])
+  @@index([accountId, barcode])
 }
 
 model ProductStock {

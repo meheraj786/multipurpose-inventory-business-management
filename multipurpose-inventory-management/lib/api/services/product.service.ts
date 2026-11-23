@@ -41,6 +41,7 @@ export type Product = {
 	name: string;
 	description: string | null;
 	sku: string | null;
+	barcode: string | null;
 	tax: number | null;
 	defaultPurchasePrice: number | null;
 	defaultSalePrice: number | null;
@@ -91,6 +92,13 @@ const getOne = async (id: string): Promise<Product> => {
 	return data.data;
 };
 
+const getByBarcode = async (barcode: string): Promise<Product> => {
+	const { data } = await api.get(
+		`/products/by-barcode/${encodeURIComponent(barcode)}`,
+	);
+	return data.data;
+};
+
 const create = async (payload: CreateProductForm): Promise<Product> => {
 	const { data } = await api.post("/products", payload);
 	return data.data;
@@ -124,6 +132,7 @@ const getStockSummary = async (productId: string): Promise<StockSummary> => {
 export const ProductApiService = {
 	getAll,
 	getOne,
+	getByBarcode,
 	create,
 	update,
 	remove,

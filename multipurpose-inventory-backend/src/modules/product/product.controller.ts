@@ -69,6 +69,23 @@ const getSingleProduct = async (req: Request, res: Response, next: NextFunction)
   }
 };
 
+const getProductByBarcode = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const barcode = req.params.barcode as string;
+    const accountId = req.user?.accountId as string;
+    const result = await ProductService.getProductByBarcode(barcode, accountId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Product fetched successfully",
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const updateProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = req.params.id as string;
@@ -148,6 +165,7 @@ const getStockSummary = async (req: Request, res: Response, next: NextFunction) 
 export const ProductController = {
   createProduct,
   getAllProducts,
+  getProductByBarcode,
   getSingleProduct,
   updateProduct,
   deleteProduct,

@@ -36,6 +36,11 @@ export const getProductColumns = (
 						{row.original.sku}
 					</p>
 				)}
+				{row.original.barcode && (
+					<p className="text-xs text-muted-foreground font-mono">
+						Barcode: {row.original.barcode}
+					</p>
+				)}
 			</Link>
 		),
 	},

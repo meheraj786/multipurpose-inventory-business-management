@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { BarcodeScannerInput } from "@/components/appComponents/BarcodeScannerInput";
 import { MetricCard } from "@/components/appComponents/metric-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { useCurrency } from "@/hooks/useCurrency";
-import { useGetProducts } from "@/hooks/useProducts";
+import { useGetProducts, useLookupProductByBarcode } from "@/hooks/useProducts";
 
 type FilterType = "all" | "low" | "out";
 
@@ -141,6 +142,12 @@ export default function InventoryPage() {
 	const [search, setSearch] = useState("");
 	const [filter, setFilter] = useState<FilterType>("all");
 	const { symbol } = useCurrency();
+	const lookupProductByBarcode = useLookupProductByBarcode();
+
+	const openScannedProduct = async (barcode: string) => {
+		const product = await lookupProductByBarcode.mutateAsync(barcode);
+		router.push(`/dashboard/products/${product.id}`);
+	};
 
 	const { data: result, isLoading } = useGetProducts({
 		page: 1,
@@ -274,6 +281,9 @@ export default function InventoryPage() {
 						</span>
 					</div>
 					<div className="flex items-center gap-3 mt-3 flex-wrap">
+						<div className="w-full max-w-xs">
+							<BarcodeScannerInput onScan={openScannedProduct} />
+						</div>
 						<div className="relative">
 							<PackageSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 							<Input

@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
 	ProductApiService,
 	type ProductQueryParams,
 } from "@/lib/api/services/product.service";
+import type { ApiError } from "@/lib/error";
 import type {
 	CreateProductForm,
 	StockInForm,
@@ -24,12 +26,19 @@ export const useGetSingleProduct = (id: string) =>
 		enabled: !!id,
 	});
 
+export const useLookupProductByBarcode = () =>
+	useMutation({
+		mutationFn: (barcode: string) => ProductApiService.getByBarcode(barcode),
+	});
+
 export const useCreateProduct = () => {
 	const qc = useQueryClient();
 	return useMutation({
 		mutationFn: (payload: CreateProductForm) =>
 			ProductApiService.create(payload),
 		onSuccess: () => qc.invalidateQueries({ queryKey: [PRODUCT_KEY] }),
+		onError: (error: ApiError) =>
+			toast.error(error.response?.data?.message ?? "Failed to create product"),
 	});
 };
 
@@ -39,6 +48,8 @@ export const useUpdateProduct = () => {
 		mutationFn: ({ id, ...payload }: UpdateProductForm & { id: string }) =>
 			ProductApiService.update(id, payload),
 		onSuccess: () => qc.invalidateQueries({ queryKey: [PRODUCT_KEY] }),
+		onError: (error: ApiError) =>
+			toast.error(error.response?.data?.message ?? "Failed to update product"),
 	});
 };
 

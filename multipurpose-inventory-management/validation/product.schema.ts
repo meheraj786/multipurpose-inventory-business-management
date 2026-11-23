@@ -15,6 +15,7 @@ export const createProductSchema = z.object({
 	name: z.string().min(2, "Name must be at least 2 characters").max(100),
 	description: z.string().optional(),
 	sku: z.string().optional(),
+	barcode: z.string().optional(),
 	tax: optionalPrice,
 	defaultSalePrice: optionalPrice,
 	lowStockAlert: z.string().optional(),

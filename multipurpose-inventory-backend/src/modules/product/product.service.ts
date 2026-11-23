@@ -5,6 +5,7 @@ import {
   SystemModule,
 } from "../../generated/prisma/index.js";
 import prisma from "../../shared/utils/prisma.js";
+import { ConflictError, NotFoundError } from "../../shared/errors/AppError.js";
 import { ActivityLogService } from "../activityLog/activityLog.service.js";
 import { TrashService } from "../trash/trash.service.js";
 import type { CreateProductInput, UpdateProductInput, StockInInput } from "./product.validation.js";
@@ -14,11 +15,19 @@ const createProduct = async (
   accountId: string,
   userId: string,
 ): Promise<Product> => {
+  const barcode = data.barcode?.trim() || null;
+
   if (data.sku) {
     const existing = await prisma.product.findFirst({
       where: { sku: data.sku, accountId, isDeleted: false },
     });
     if (existing) throw new Error("A product with this SKU already exists");
+  }
+  if (barcode) {
+    const existing = await prisma.product.findFirst({
+      where: { barcode, accountId, isDeleted: false },
+    });
+    if (existing) throw new ConflictError("A product with this barcode already exists");
   }
 
   // If unitId was not provided, try to pick a default unit for the account
@@ -32,7 +41,7 @@ const createProduct = async (
   const unit = await prisma.unit.findUnique({ where: { id: unitIdToUse } });
   if (!unit) throw new Error("Unit not found");
   const product = await prisma.product.create({
-    data: { ...data, unitId: unitIdToUse, accountId },
+    data: { ...data, barcode, unitId: unitIdToUse, accountId },
     include: { category: true, subCategory: true, unit: true },
   });
 
@@ -66,6 +75,7 @@ const getAllProducts = async (
       OR: [
         { name: { contains: search, mode: "insensitive" } },
         { sku: { contains: search, mode: "insensitive" } },
+        { barcode: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
       ],
     }),
@@ -103,6 +113,28 @@ const getAllProducts = async (
       limit,
       totalPages: Math.ceil(total / limit),
     },
+  };
+};
+
+const getProductByBarcode = async (barcode: string, accountId: string) => {
+  const product = await prisma.product.findFirst({
+    where: { barcode, accountId, isDeleted: false },
+    include: {
+      category: true,
+      subCategory: true,
+      unit: true,
+      productStocks: {
+        where: { isDeleted: false },
+        select: { quantity: true },
+      },
+    },
+  });
+
+  if (!product) throw new NotFoundError("No active product matches this barcode");
+
+  return {
+    ...product,
+    totalStock: product.productStocks.reduce((sum, stock) => sum + Number(stock.quantity), 0),
   };
 };
 
@@ -154,6 +186,16 @@ const updateProduct = async (
   });
   if (!existing) throw new Error("Product not found");
 
+  const barcode = data.barcode?.trim() || null;
+  if (barcode && barcode !== existing.barcode) {
+    const barcodeConflict = await prisma.product.findFirst({
+      where: { barcode, accountId, isDeleted: false, NOT: { id } },
+    });
+    if (barcodeConflict) {
+      throw new ConflictError("A product with this barcode already exists");
+    }
+  }
+
   if (data.sku && data.sku !== existing.sku) {
     const skuConflict = await prisma.product.findFirst({
       where: { sku: data.sku, accountId, isDeleted: false, NOT: { id } },
@@ -168,7 +210,10 @@ const updateProduct = async (
 
   const updated = await prisma.product.update({
     where: { id },
-    data,
+    data: {
+      ...data,
+      ...(data.barcode !== undefined && { barcode }),
+    },
     include: { category: true, subCategory: true, unit: true },
   });
 
@@ -297,6 +342,7 @@ const getStockSummary = async (productId: string, accountId: string) => {
 export const ProductService = {
   createProduct,
   getAllProducts,
+  getProductByBarcode,
   getSingleProduct,
   updateProduct,
   deleteProduct,

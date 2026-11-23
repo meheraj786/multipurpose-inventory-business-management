@@ -107,6 +107,15 @@ function ProductFormFields({
 					<FormRow label="SKU" error={errors.sku?.message as string}>
 						<Input placeholder="e.g. APL-001" {...register("sku")} />
 					</FormRow>
+					<FormRow label="Barcode" error={errors.barcode?.message as string}>
+						<Input
+							placeholder="Scan or enter barcode"
+							{...register("barcode")}
+							onKeyDown={(event) => {
+								if (event.key === "Enter") event.preventDefault();
+							}}
+						/>
+					</FormRow>
 				</div>
 			</div>
 
@@ -313,6 +322,7 @@ export default function ProductsPage() {
 		defaultValues: {
 			name: "",
 			categoryId: "",
+			barcode: "",
 			tax: undefined,
 			defaultSalePrice: undefined,
 			lowStockAlert: undefined,
@@ -333,6 +343,7 @@ export default function ProductsPage() {
 				name: editingProduct.name,
 				description: editingProduct.description || "",
 				sku: editingProduct.sku || "",
+				barcode: editingProduct.barcode || "",
 				tax: editingProduct.tax || undefined,
 				defaultSalePrice: editingProduct.defaultSalePrice || undefined,
 				lowStockAlert: editingProduct.lowStockAlert || undefined,

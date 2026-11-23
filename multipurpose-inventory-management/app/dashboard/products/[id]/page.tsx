@@ -101,6 +101,11 @@ export default function ProductDetailPage() {
 									{product.sku}
 								</Badge>
 							)}
+							{product.barcode && (
+								<Badge variant="outline" className="font-mono text-xs">
+									Barcode: {product.barcode}
+								</Badge>
+							)}
 							{isLowStock && (
 								<Badge variant="destructive" className="text-xs">
 									Low Stock

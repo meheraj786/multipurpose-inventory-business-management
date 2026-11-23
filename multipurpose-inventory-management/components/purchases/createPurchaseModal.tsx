@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { BarcodeScannerInput } from "@/components/appComponents/BarcodeScannerInput";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { useGetProducts } from "@/hooks/useProducts";
+import { useGetProducts, useLookupProductByBarcode } from "@/hooks/useProducts";
 import { useCreatePurchaseWithPayment } from "@/hooks/usePurchases";
 import { useGetSuppliers } from "@/hooks/useSuppliers";
 import {
@@ -62,6 +63,7 @@ export function CreatePurchaseModal({ initialProductId, onClose }: Props) {
 		control,
 		watch,
 		setValue,
+		getValues,
 		formState: { errors },
 	} = useForm<CreatePurchaseForm>({
 		resolver: zodResolver(createPurchaseSchema),
@@ -89,6 +91,33 @@ export function CreatePurchaseModal({ initialProductId, onClose }: Props) {
 		control,
 		name: "items",
 	});
+	const lookupProductByBarcode = useLookupProductByBarcode();
+
+	const addScannedProduct = async (barcode: string) => {
+		const product = await lookupProductByBarcode.mutateAsync(barcode);
+		const items = getValues("items") ?? [];
+		const existingIndex = items.findIndex(
+			(item) => item.productId === product.id,
+		);
+
+		if (existingIndex >= 0) {
+			const quantity = Number(items[existingIndex]?.quantity ?? 0);
+			setValue(`items.${existingIndex}.quantity`, quantity + 1, {
+				shouldDirty: true,
+				shouldValidate: true,
+			});
+			return;
+		}
+
+		append({
+			productId: product.id,
+			unitId: product.unitId ?? undefined,
+			quantity: 1,
+			purchasePrice: Number(product.defaultPurchasePrice ?? 0),
+			batch: "",
+			notes: "",
+		});
+	};
 
 	useEffect(() => {
 		if (isSuccess) onClose();
@@ -165,6 +194,7 @@ export function CreatePurchaseModal({ initialProductId, onClose }: Props) {
 							Add Item
 						</Button>
 					</div>
+					<BarcodeScannerInput onScan={addScannedProduct} autoFocus />
 
 					{fields.map((field, index) => (
 						<div
@@ -196,6 +226,10 @@ export function CreatePurchaseModal({ initialProductId, onClose }: Props) {
 									options={products.map((product) => ({
 										value: product.id,
 										label: product.name,
+										description: product.barcode
+											? `Barcode: ${product.barcode}`
+											: null,
+										searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 									}))}
 									placeholder="Select product"
 									searchPlaceholder="Search product..."

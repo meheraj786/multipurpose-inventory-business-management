@@ -21,6 +21,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { BarcodeScannerInput } from "@/components/appComponents/BarcodeScannerInput";
 import DataTable, { type PaginationParams } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ import { Separator } from "@/components/ui/separator";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useCreateCustomer, useGetCustomers } from "@/hooks/useCustomer";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
-import { useGetProducts } from "@/hooks/useProducts";
+import { useGetProducts, useLookupProductByBarcode } from "@/hooks/useProducts";
 import {
 	type Sale,
 	type SaleInvoice,
@@ -133,7 +134,7 @@ export default function CreateSalePage() {
 			id: product.id,
 			label: product.name,
 			description: `Product · ${symbol}${Number(product.defaultSalePrice ?? 0).toFixed(2)} · ${product.totalStock ?? 0} in stock`,
-			searchValue: `${product.name} ${product.sku ?? ""}`,
+			searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 			stock: product.totalStock ?? 0,
 			unitId: product.unitId ?? "",
 			sellPrice: Number(product.defaultSalePrice ?? 0),
@@ -159,6 +160,7 @@ export default function CreateSalePage() {
 				: "Inventory Products";
 
 	const { mutate: createSale, isPending } = useCreateSale();
+	const lookupProductByBarcode = useLookupProductByBarcode();
 	const { mutate: createCustomer, isPending: isCreatingCustomer } =
 		useCreateCustomer();
 
@@ -171,6 +173,7 @@ export default function CreateSalePage() {
 		handleSubmit,
 		control,
 		setValue,
+		getValues,
 		trigger,
 		reset,
 		formState: { errors },
@@ -277,6 +280,33 @@ export default function CreateSalePage() {
 		});
 
 		trigger(`saleItems.${index}.productId`);
+	};
+
+	const addScannedProduct = async (barcode: string) => {
+		const product = await lookupProductByBarcode.mutateAsync(barcode);
+		const items = getValues("saleItems") ?? [];
+		const existingIndex = items.findIndex(
+			(item) => item.itemType === "PRODUCT" && item.productId === product.id,
+		);
+
+		if (existingIndex >= 0) {
+			const quantity = Number(items[existingIndex]?.quantity ?? 0);
+			setValue(`saleItems.${existingIndex}.quantity`, quantity + 1, {
+				shouldDirty: true,
+				shouldValidate: true,
+			});
+			return;
+		}
+
+		appendItem({
+			itemType: "PRODUCT",
+			productId: product.id,
+			preparedProductId: "",
+			unitId: product.unitId ?? "",
+			quantity: 1,
+			sellPrice: Number(product.defaultSalePrice ?? 0),
+			discount: 0,
+		});
 	};
 
 	const getSelectedItemValue = (index: number) => {
@@ -614,6 +644,14 @@ export default function CreateSalePage() {
 									</Button>
 								</CardHeader>
 								<CardContent>
+									{showItems && (
+										<div className="mb-4">
+											<BarcodeScannerInput
+												onScan={addScannedProduct}
+												autoFocus
+											/>
+										</div>
+									)}
 									{itemFields.length === 0 ? (
 										<EmptyRow
 											label={`No ${itemsCardTitle.toLowerCase()} selected yet. Click append row to add.`}

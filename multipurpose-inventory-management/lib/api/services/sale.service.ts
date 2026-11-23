@@ -10,6 +10,7 @@ export type SaleProduct = {
 	id: string;
 	name: string;
 	sku: string | null;
+	barcode: string | null;
 };
 
 export type SalePreparedProduct = {

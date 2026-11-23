@@ -9,6 +9,7 @@ import {
 	useForm,
 	useWatch,
 } from "react-hook-form";
+import { BarcodeScannerInput } from "@/components/appComponents/BarcodeScannerInput";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetCustomers } from "@/hooks/useCustomer";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
-import { useGetProducts } from "@/hooks/useProducts";
+import { useGetProducts, useLookupProductByBarcode } from "@/hooks/useProducts";
 import { type Sale, useUpdateSale } from "@/hooks/useSale";
 import { useGetServices } from "@/hooks/useService";
 import { type Unit, useGetUnits } from "@/hooks/useUnits";
@@ -82,7 +83,7 @@ export function EditSaleModal({ sale, onClose }: Props) {
 			id: product.id,
 			label: product.name,
 			description: product.sku ? `SKU: ${product.sku}` : "Product",
-			searchValue: `${product.name} ${product.sku ?? ""}`,
+			searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 			unitId: product.unitId ?? "",
 			sellPrice: Number(product.defaultSalePrice ?? 0),
 		})),
@@ -106,6 +107,7 @@ export function EditSaleModal({ sale, onClose }: Props) {
 				: "Products";
 
 	const { mutate: updateSale, isPending } = useUpdateSale();
+	const lookupProductByBarcode = useLookupProductByBarcode();
 
 	const buildDefaults = useCallback(
 		(s: Sale): UpdateSaleForm => ({
@@ -143,6 +145,7 @@ export function EditSaleModal({ sale, onClose }: Props) {
 		handleSubmit,
 		control,
 		setValue,
+		getValues,
 		reset,
 		formState: { errors },
 	} = useForm<UpdateSaleForm>({
@@ -248,6 +251,33 @@ export function EditSaleModal({ sale, onClose }: Props) {
 		setValue(`saleItems.${index}.sellPrice`, option.sellPrice, {
 			shouldDirty: true,
 			shouldValidate: true,
+		});
+	};
+
+	const addScannedProduct = async (barcode: string) => {
+		const product = await lookupProductByBarcode.mutateAsync(barcode);
+		const items = getValues("saleItems") ?? [];
+		const existingIndex = items.findIndex(
+			(item) => item.itemType === "PRODUCT" && item.productId === product.id,
+		);
+
+		if (existingIndex >= 0) {
+			const quantity = Number(items[existingIndex]?.quantity ?? 0);
+			setValue(`saleItems.${existingIndex}.quantity`, quantity + 1, {
+				shouldDirty: true,
+				shouldValidate: true,
+			});
+			return;
+		}
+
+		appendItem({
+			itemType: "PRODUCT",
+			productId: product.id,
+			preparedProductId: "",
+			unitId: product.unitId ?? "",
+			quantity: 1,
+			sellPrice: Number(product.defaultSalePrice ?? 0),
+			discount: 0,
 		});
 	};
 
@@ -436,6 +466,11 @@ export function EditSaleModal({ sale, onClose }: Props) {
 							<Plus className="h-3 w-3 mr-1" /> Add Item
 						</Button>
 					</div>
+					{showItems && (
+						<div className="mb-4">
+							<BarcodeScannerInput onScan={addScannedProduct} autoFocus />
+						</div>
+					)}
 					<div className="space-y-2">
 						{itemFields.map((field, index) => (
 							<div

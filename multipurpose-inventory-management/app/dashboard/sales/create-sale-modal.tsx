@@ -3,13 +3,14 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import { BarcodeScannerInput } from "@/components/appComponents/BarcodeScannerInput";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetCustomers } from "@/hooks/useCustomer";
-import { useGetProducts } from "@/hooks/useProducts";
+import { useGetProducts, useLookupProductByBarcode } from "@/hooks/useProducts";
 import { useCreateSale } from "@/hooks/useSale";
 import { useGetServices } from "@/hooks/useService";
 import { type Unit, useGetUnits } from "@/hooks/useUnits";
@@ -46,12 +47,14 @@ export function CreateSaleModal({ onClose }: Props) {
 	const units = unitResult?.data ?? [];
 
 	const { mutate: createSale, isPending } = useCreateSale();
+	const lookupProductByBarcode = useLookupProductByBarcode();
 
 	const {
 		register,
 		handleSubmit,
 		control,
 		setValue,
+		getValues,
 		formState: { errors },
 	} = useForm<CreateSaleForm>({
 		resolver: zodResolver(createSaleSchema),
@@ -82,6 +85,32 @@ export function CreateSaleModal({ onClose }: Props) {
 	const watchedDiscount = useWatch({ control, name: "discount" }) ?? 0;
 	const selectedCustomerId = useWatch({ control, name: "customerId" }) ?? "";
 	const selectedMethod = useWatch({ control, name: "paymentMethod" });
+
+	const addScannedProduct = async (barcode: string) => {
+		const product = await lookupProductByBarcode.mutateAsync(barcode);
+		const items = getValues("saleItems") ?? [];
+		const existingIndex = items.findIndex(
+			(item) => item.itemType === "PRODUCT" && item.productId === product.id,
+		);
+
+		if (existingIndex >= 0) {
+			const quantity = Number(items[existingIndex]?.quantity ?? 0);
+			setValue(`saleItems.${existingIndex}.quantity`, quantity + 1, {
+				shouldDirty: true,
+				shouldValidate: true,
+			});
+			return;
+		}
+
+		appendItem({
+			itemType: "PRODUCT",
+			productId: product.id,
+			unitId: product.unitId ?? "",
+			quantity: 1,
+			sellPrice: Number(product.defaultSalePrice ?? 0),
+			discount: 0,
+		});
+	};
 
 	const hybrid = isHybrid(selectedMethod);
 	const hybridParts = hybrid ? HYBRID_PARTS[selectedMethod] : null;
@@ -265,6 +294,7 @@ export function CreateSaleModal({ onClose }: Props) {
 							<Plus className="h-3 w-3 mr-1" /> Add Product
 						</Button>
 					</div>
+					<BarcodeScannerInput onScan={addScannedProduct} autoFocus />
 					<div className="space-y-2">
 						{itemFields.map((field, index) => (
 							<div
@@ -299,8 +329,12 @@ export function CreateSaleModal({ onClose }: Props) {
 										options={products.map((product) => ({
 											value: product.id,
 											label: product.name,
-											description: product.sku ? `SKU: ${product.sku}` : null,
-											searchValue: `${product.name} ${product.sku ?? ""}`,
+											description: product.barcode
+												? `Barcode: ${product.barcode}`
+												: product.sku
+													? `SKU: ${product.sku}`
+													: null,
+											searchValue: `${product.name} ${product.sku ?? ""} ${product.barcode ?? ""}`,
 										}))}
 										placeholder="Select product..."
 										searchPlaceholder="Search product..."

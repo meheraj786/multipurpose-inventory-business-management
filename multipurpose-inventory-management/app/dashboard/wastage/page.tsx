@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { BarcodeScannerInput } from "@/components/appComponents/BarcodeScannerInput";
 import { Modal } from "@/components/appComponents/Modal";
 import { MetricCard } from "@/components/appComponents/metric-card";
 import DataTable, { type PaginationParams } from "@/components/data-table";
@@ -26,7 +27,7 @@ import { Label } from "@/components/ui/label";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Textarea } from "@/components/ui/textarea";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
-import { useGetProducts } from "@/hooks/useProducts";
+import { useGetProducts, useLookupProductByBarcode } from "@/hooks/useProducts";
 import { useGetRawProducts } from "@/hooks/useRawProducts";
 import {
 	useCreateWastage,
@@ -128,6 +129,7 @@ export default function WastagePage() {
 
 	const createWastageMutation = useCreateWastage();
 	const deleteWastageMutation = useDeleteWastage();
+	const lookupProductByBarcode = useLookupProductByBarcode();
 
 	const form = useForm<CreateWastageInput>({
 		resolver: zodResolver(createWastageSchema),
@@ -146,6 +148,7 @@ export default function WastagePage() {
 		handleSubmit,
 		control,
 		setValue,
+		getValues,
 		watch,
 		reset,
 		formState: { errors },
@@ -154,6 +157,25 @@ export default function WastagePage() {
 	const selectedProductId = watch("productId");
 	const selectedRawProductId = watch("rawProductId");
 	const selectedPreparedProductId = watch("preparedProductId");
+
+	const selectScannedProduct = async (barcode: string) => {
+		const product = await lookupProductByBarcode.mutateAsync(barcode);
+		const currentProductId = getValues("productId");
+
+		if (currentProductId === product.id) {
+			setValue("quantity", Number(getValues("quantity") ?? 0) + 1, {
+				shouldDirty: true,
+				shouldValidate: true,
+			});
+			return;
+		}
+
+		setValue("productId", product.id, {
+			shouldDirty: true,
+			shouldValidate: true,
+		});
+		setValue("quantity", 1, { shouldDirty: true, shouldValidate: true });
+	};
 
 	const productsList = useMemo(() => productsData?.data || [], [productsData]);
 	const rawProductsList = useMemo(
@@ -432,6 +454,7 @@ export default function WastagePage() {
 
 					{assetType === "PRODUCT" && (
 						<div className="space-y-1.5">
+							<BarcodeScannerInput onScan={selectScannedProduct} autoFocus />
 							<Label>Select Product</Label>
 							<Controller
 								name="productId"
@@ -443,6 +466,8 @@ export default function WastagePage() {
 										options={productsList.map((p) => ({
 											value: p.id,
 											label: p.name,
+											description: p.barcode ? `Barcode: ${p.barcode}` : null,
+											searchValue: `${p.name} ${p.sku ?? ""} ${p.barcode ?? ""}`,
 										}))}
 										placeholder="Pick retail product"
 										searchPlaceholder="Search product..."

@@ -22,7 +22,7 @@ export type FifoStockLayer = {
 export const planFifoStockAllocations = (
   stocks: FifoStockLayer[],
   quantity: number,
-  saleUnitConversionFactor: number | string = 1,
+  saleUnitConversionFactor: number | string | { toString(): string } = 1,
 ) => {
   let remaining = new Prisma.Decimal(quantity);
   const saleUnitFactor = new Prisma.Decimal(saleUnitConversionFactor.toString());

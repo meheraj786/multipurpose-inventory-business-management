@@ -24,9 +24,11 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
 
-RUN pnpm install --prod --frozen-lockfile
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts \
+    && pnpm rebuild bcrypt
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/src/generated/prisma ./dist/generated/prisma
 
 EXPOSE 5000
 

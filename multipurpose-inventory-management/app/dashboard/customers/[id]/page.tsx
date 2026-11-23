@@ -28,6 +28,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetCustomer } from "@/hooks/useCustomer";
 import type { Sale, SaleItem, SaleServiceItem } from "@/hooks/useSale";
@@ -43,6 +44,8 @@ export default function CustomerDetailPage() {
 	const { id } = useParams() as { id: string };
 	const { data: customer, isLoading } = useGetCustomer(id);
 	const { symbol } = useCurrency();
+	const canCreateSale = useCan("SALE", "CREATE");
+	const canUpdateCustomer = useCan("CUSTOMER", "UPDATE");
 
 	if (isLoading) return <CustomerSkeleton />;
 	if (!customer) {
@@ -120,12 +123,16 @@ export default function CustomerDetailPage() {
 					</div>
 				</div>
 				<div className="flex gap-2">
-					<Button variant="outline" size="sm">
-						Edit Profile
-					</Button>
-					<Button size="sm" asChild>
-						<Link href="/dashboard/sales">Create New Sale</Link>
-					</Button>
+					{canUpdateCustomer && (
+						<Button variant="outline" size="sm">
+							Edit Profile
+						</Button>
+					)}
+					{canCreateSale && (
+						<Button size="sm" asChild>
+							<Link href="/dashboard/sales/create">Create New Sale</Link>
+						</Button>
+					)}
 				</div>
 			</div>
 

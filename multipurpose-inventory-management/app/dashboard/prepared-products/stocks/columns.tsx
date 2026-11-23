@@ -5,6 +5,7 @@ import type { PreparedProduct } from "@/lib/api/services/preparedProduct.service
 
 type Handlers = {
 	onProduce: (product: PreparedProduct) => void;
+	canProduce: boolean;
 };
 
 export const getPreparedProductStockColumns = (
@@ -45,18 +46,19 @@ export const getPreparedProductStockColumns = (
 	{
 		id: "actions",
 		header: "",
-		cell: ({ row }) => (
-			<div className="flex justify-end">
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={() => handlers.onProduce(row.original)}
-				>
-					<ChefHat className="mr-1 h-3.5 w-3.5" />
-					Produce
-				</Button>
-			</div>
-		),
+		cell: ({ row }) =>
+			handlers.canProduce ? (
+				<div className="flex justify-end">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => handlers.onProduce(row.original)}
+					>
+						<ChefHat className="mr-1 h-3.5 w-3.5" />
+						Produce
+					</Button>
+				</div>
+			) : null,
 	},
 ];

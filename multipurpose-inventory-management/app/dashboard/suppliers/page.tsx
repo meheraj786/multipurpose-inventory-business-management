@@ -36,6 +36,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	type Supplier,
@@ -45,6 +46,9 @@ import {
 } from "@/hooks/useSuppliers";
 
 export default function SuppliersPage() {
+	const canCreate = useCan("SUPPLIER", "CREATE");
+	const canUpdate = useCan("SUPPLIER", "UPDATE");
+	const canDelete = useCan("SUPPLIER", "DELETE");
 	const router = useRouter();
 	const { symbol } = useCurrency();
 
@@ -173,32 +177,38 @@ export default function SuppliersPage() {
 									View Details
 								</DropdownMenuItem>
 
-								<DropdownMenuItem onClick={() => setEditSupplier(supplier)}>
-									<Pencil className="mr-2 h-4 w-4" />
-									Edit
-								</DropdownMenuItem>
+								{canUpdate && (
+									<DropdownMenuItem onClick={() => setEditSupplier(supplier)}>
+										<Pencil className="mr-2 h-4 w-4" />
+										Edit
+									</DropdownMenuItem>
+								)}
 
-								<DropdownMenuItem onClick={() => toggleActive(supplier.id)}>
-									<Power className="mr-2 h-4 w-4" />
-									{supplier.isActive ? "Deactivate" : "Activate"}
-								</DropdownMenuItem>
+								{canUpdate && (
+									<DropdownMenuItem onClick={() => toggleActive(supplier.id)}>
+										<Power className="mr-2 h-4 w-4" />
+										{supplier.isActive ? "Deactivate" : "Activate"}
+									</DropdownMenuItem>
+								)}
 
-								<DropdownMenuSeparator />
+								{canDelete && <DropdownMenuSeparator />}
 
-								<DropdownMenuItem
-									className="text-destructive focus:text-destructive"
-									onClick={() => setDeleteTarget(supplier)}
-								>
-									<Trash2 className="mr-2 h-4 w-4" />
-									Delete
-								</DropdownMenuItem>
+								{canDelete && (
+									<DropdownMenuItem
+										className="text-destructive focus:text-destructive"
+										onClick={() => setDeleteTarget(supplier)}
+									>
+										<Trash2 className="mr-2 h-4 w-4" />
+										Delete
+									</DropdownMenuItem>
+								)}
 							</DropdownMenuContent>
 						</DropdownMenu>
 					);
 				},
 			},
 		],
-		[router, toggleActive, symbol],
+		[canDelete, canUpdate, router, toggleActive, symbol],
 	);
 
 	return (
@@ -241,66 +251,72 @@ export default function SuppliersPage() {
 					Has Due
 				</Button>
 
-				<Modal
-					open={createOpen}
-					onOpenChange={setCreateOpen}
-					trigger={<Button>+ New Supplier</Button>}
-					title="Create Supplier"
-				>
-					<SupplierFormModal onClose={() => setCreateOpen(false)} />
-				</Modal>
+				{canCreate && (
+					<Modal
+						open={createOpen}
+						onOpenChange={setCreateOpen}
+						trigger={<Button>+ New Supplier</Button>}
+						title="Create Supplier"
+					>
+						<SupplierFormModal onClose={() => setCreateOpen(false)} />
+					</Modal>
+				)}
 			</div>
 
-			<Modal
-				open={!!editSupplier}
-				onOpenChange={(o) => !o && setEditSupplier(null)}
-				title="Edit Supplier"
-			>
-				{editSupplier && (
-					<SupplierFormModal
-						supplier={editSupplier}
-						onClose={() => setEditSupplier(null)}
-					/>
-				)}
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!editSupplier}
+					onOpenChange={(o) => !o && setEditSupplier(null)}
+					title="Edit Supplier"
+				>
+					{editSupplier && (
+						<SupplierFormModal
+							supplier={editSupplier}
+							onClose={() => setEditSupplier(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
-			<AlertDialog
-				open={!!deleteTarget}
-				onOpenChange={(o) => !o && setDeleteTarget(null)}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Delete supplier?</AlertDialogTitle>
-						<AlertDialogDescription>
-							&quot;{deleteTarget?.name}&quot; will be moved to trash. You can
-							restore it later.
-							{deleteTarget && Number(deleteTarget.totalDue ?? 0) > 0 && (
-								<span className="block mt-2 text-destructive font-medium">
-									This supplier has {symbol}
-									{Number(deleteTarget.totalDue ?? 0).toFixed(2)} in outstanding
-									due across their purchases.
-								</span>
-							)}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={() => {
-								if (deleteTarget) {
-									deleteSupplier(deleteTarget.id, {
-										onSuccess: () => setDeleteTarget(null),
-									});
-								}
-							}}
-						>
-							{isDeleting ? "Deleting..." : "Move to Trash"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{canDelete && (
+				<AlertDialog
+					open={!!deleteTarget}
+					onOpenChange={(o) => !o && setDeleteTarget(null)}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete supplier?</AlertDialogTitle>
+							<AlertDialogDescription>
+								&quot;{deleteTarget?.name}&quot; will be moved to trash. You can
+								restore it later.
+								{deleteTarget && Number(deleteTarget.totalDue ?? 0) > 0 && (
+									<span className="block mt-2 text-destructive font-medium">
+										This supplier has {symbol}
+										{Number(deleteTarget.totalDue ?? 0).toFixed(2)} in
+										outstanding due across their purchases.
+									</span>
+								)}
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								disabled={isDeleting}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								onClick={() => {
+									if (deleteTarget) {
+										deleteSupplier(deleteTarget.id, {
+											onSuccess: () => setDeleteTarget(null),
+										});
+									}
+								}}
+							>
+								{isDeleting ? "Deleting..." : "Move to Trash"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 
 			<DataTable
 				title="Suppliers"

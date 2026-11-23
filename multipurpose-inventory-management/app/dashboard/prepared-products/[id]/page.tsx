@@ -26,6 +26,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useCan } from "@/hooks/useCan";
 import {
 	useGetSinglePreparedProduct,
 	useProduceStock,
@@ -50,6 +51,7 @@ export default function PreparedProductDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
 	const [produceOpen, setProduceOpen] = useState(false);
+	const canProduceStock = useCan("PREPARED_PRODUCT", "STOCK_IN");
 
 	const { data: pp, isLoading } = useGetSinglePreparedProduct(id);
 	const { mutate: produceStock, isPending: isProducing } = useProduceStock(id);
@@ -148,14 +150,16 @@ export default function PreparedProductDetailPage() {
 						</p>
 					</div>
 				</div>
-				<Button
-					onClick={() => setProduceOpen(true)}
-					disabled={!canProduce}
-					title={!canProduce ? "Insufficient raw materials" : undefined}
-				>
-					<Zap className="mr-2 h-4 w-4" />
-					Produce Stock
-				</Button>
+				{canProduceStock && (
+					<Button
+						onClick={() => setProduceOpen(true)}
+						disabled={!canProduce}
+						title={!canProduce ? "Insufficient raw materials" : undefined}
+					>
+						<Zap className="mr-2 h-4 w-4" />
+						Produce Stock
+					</Button>
+				)}
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-4">
@@ -347,80 +351,82 @@ export default function PreparedProductDetailPage() {
 				</CardContent>
 			</Card>
 
-			<Modal
-				open={produceOpen}
-				onOpenChange={(open) => !open && setProduceOpen(false)}
-				title="Produce Stock"
-			>
-				<form
-					onSubmit={produceForm.handleSubmit(onProduceSubmit)}
-					className="space-y-5 p-6"
+			{canProduceStock && (
+				<Modal
+					open={produceOpen}
+					onOpenChange={(open) => !open && setProduceOpen(false)}
+					title="Produce Stock"
 				>
-					<div className="p-3 bg-muted/30 rounded-md text-sm space-y-2">
-						<div className="flex justify-between">
-							<span className="text-muted-foreground">Current Stock</span>
-							<span className="font-medium">
-								{totalStock} {detail.unit?.symbol}
-							</span>
-						</div>
-						<div className="flex justify-between">
-							<span className="text-muted-foreground">Max Producible</span>
-							<span className="font-medium text-green-600">
-								{maxProducible} {detail.unit?.symbol}
-							</span>
-						</div>
-					</div>
-
-					<div className="space-y-2">
-						<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-							Will Consume Per Unit
-						</p>
-						{detail.preparedProductItems.map((item) => (
-							<div
-								key={item.id}
-								className="flex justify-between text-sm px-2 py-1 rounded bg-muted/30"
-							>
-								<span>{item.rawProduct.name}</span>
-								<span className="text-muted-foreground">
-									{Number(item.quantity)} {item.unit}
+					<form
+						onSubmit={produceForm.handleSubmit(onProduceSubmit)}
+						className="space-y-5 p-6"
+					>
+						<div className="p-3 bg-muted/30 rounded-md text-sm space-y-2">
+							<div className="flex justify-between">
+								<span className="text-muted-foreground">Current Stock</span>
+								<span className="font-medium">
+									{totalStock} {detail.unit?.symbol}
 								</span>
 							</div>
-						))}
-					</div>
+							<div className="flex justify-between">
+								<span className="text-muted-foreground">Max Producible</span>
+								<span className="font-medium text-green-600">
+									{maxProducible} {detail.unit?.symbol}
+								</span>
+							</div>
+						</div>
 
-					<Field>
-						<FieldLabel htmlFor="quantity">
-							Quantity to Produce ({detail.unit?.symbol})
-						</FieldLabel>
-						<Input
-							id="quantity"
-							type="number"
-							step="0.01"
-							min={0.01}
-							max={maxProducible}
-							{...produceForm.register("quantity")}
-						/>
-						{produceForm.formState.errors.quantity && (
-							<FieldError>
-								{produceForm.formState.errors.quantity.message}
-							</FieldError>
-						)}
-					</Field>
+						<div className="space-y-2">
+							<p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+								Will Consume Per Unit
+							</p>
+							{detail.preparedProductItems.map((item) => (
+								<div
+									key={item.id}
+									className="flex justify-between text-sm px-2 py-1 rounded bg-muted/30"
+								>
+									<span>{item.rawProduct.name}</span>
+									<span className="text-muted-foreground">
+										{Number(item.quantity)} {item.unit}
+									</span>
+								</div>
+							))}
+						</div>
 
-					<div className="flex justify-end gap-3 pt-2">
-						<Button
-							type="button"
-							variant="ghost"
-							onClick={() => setProduceOpen(false)}
-						>
-							Cancel
-						</Button>
-						<Button type="submit" disabled={isProducing}>
-							{isProducing ? "Producing..." : "Produce"}
-						</Button>
-					</div>
-				</form>
-			</Modal>
+						<Field>
+							<FieldLabel htmlFor="quantity">
+								Quantity to Produce ({detail.unit?.symbol})
+							</FieldLabel>
+							<Input
+								id="quantity"
+								type="number"
+								step="0.01"
+								min={0.01}
+								max={maxProducible}
+								{...produceForm.register("quantity")}
+							/>
+							{produceForm.formState.errors.quantity && (
+								<FieldError>
+									{produceForm.formState.errors.quantity.message}
+								</FieldError>
+							)}
+						</Field>
+
+						<div className="flex justify-end gap-3 pt-2">
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => setProduceOpen(false)}
+							>
+								Cancel
+							</Button>
+							<Button type="submit" disabled={isProducing}>
+								{isProducing ? "Producing..." : "Produce"}
+							</Button>
+						</div>
+					</form>
+				</Modal>
+			)}
 		</div>
 	);
 }

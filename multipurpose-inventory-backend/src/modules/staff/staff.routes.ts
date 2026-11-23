@@ -1,7 +1,6 @@
 import { Router } from "express";
 import validateRequest from "../../shared/middlewares/validateRequest.js";
-import { authenticate } from "../../shared/middlewares/authenticate.js";
-import { authorizeRoles } from "../../shared/middlewares/authenticate.js";
+import { authenticate, authorizeRoles } from "../../shared/middlewares/authenticate.js";
 import { StaffController } from "./staff.controller.js";
 import { StaffValidation } from "./staff.validation.js";
 
@@ -20,11 +19,6 @@ router.patch(
   "/:id",
   validateRequest(StaffValidation.updateStaffZodSchema),
   StaffController.updateStaff,
-);
-router.put(
-  "/:id/permissions",
-  validateRequest(StaffValidation.updatePermissionsZodSchema),
-  StaffController.updatePermissions,
 );
 router.delete("/:id", StaffController.deleteStaff);
 

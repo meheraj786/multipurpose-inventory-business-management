@@ -6,6 +6,7 @@ import type { RawProduct } from "@/lib/api/services/rawProduct.service";
 
 type Handlers = {
 	onAddStock: (product: RawProduct) => void;
+	canStockIn: boolean;
 };
 
 export const getRawProductStockColumns = (
@@ -52,18 +53,19 @@ export const getRawProductStockColumns = (
 	{
 		id: "actions",
 		header: "",
-		cell: ({ row }) => (
-			<div className="flex justify-end">
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					onClick={() => handlers.onAddStock(row.original)}
-				>
-					<PackagePlus className="mr-1 h-3.5 w-3.5" />
-					Add Stock
-				</Button>
-			</div>
-		),
+		cell: ({ row }) =>
+			handlers.canStockIn ? (
+				<div className="flex justify-end">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => handlers.onAddStock(row.original)}
+					>
+						<PackagePlus className="mr-1 h-3.5 w-3.5" />
+						Add Stock
+					</Button>
+				</div>
+			) : null,
 	},
 ];

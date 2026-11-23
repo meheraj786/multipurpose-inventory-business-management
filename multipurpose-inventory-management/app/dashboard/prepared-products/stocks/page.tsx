@@ -4,6 +4,7 @@ import { ChefHat, DollarSign, Package, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { MetricCard } from "@/components/appComponents/metric-card";
 import DataTable, { type PaginationParams } from "@/components/data-table";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
 import type { PreparedProduct } from "@/lib/api/services/preparedProduct.service";
@@ -12,6 +13,7 @@ import { ProduceDialog } from "./ProduceDialog";
 
 export default function PreparedProductStockPage() {
 	const { symbol } = useCurrency();
+	const canProduce = useCan("PREPARED_PRODUCT", "STOCK_IN");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -35,6 +37,7 @@ export default function PreparedProductStockPage() {
 
 	const columns = getPreparedProductStockColumns({
 		onProduce: (item) => setProduceTarget(item),
+		canProduce,
 	});
 
 	return (
@@ -74,7 +77,7 @@ export default function PreparedProductStockPage() {
 				searchPlaceholder="Search menu items..."
 			/>
 
-			{produceTarget && (
+			{canProduce && produceTarget && (
 				<ProduceDialog
 					preparedProduct={produceTarget}
 					onClose={() => setProduceTarget(null)}

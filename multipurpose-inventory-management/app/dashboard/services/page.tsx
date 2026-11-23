@@ -16,6 +16,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useModelGuard } from "@/hooks/useModelGuard";
@@ -176,6 +177,9 @@ function ServiceFormFields({
 
 export default function ServicesPage() {
 	useModelGuard("service");
+	const canCreate = useCan("SERVICE", "CREATE");
+	const canUpdate = useCan("SERVICE", "UPDATE");
+	const canDelete = useCan("SERVICE", "DELETE");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editService, setEditService] = useState<Service | null>(null);
 	const { symbol } = useCurrency();
@@ -277,10 +281,12 @@ export default function ServicesPage() {
 							deleteService(id);
 						}
 					},
+					canUpdate,
+					canDelete,
 				},
 				symbol,
 			),
-		[openEdit, deleteService, symbol],
+		[canDelete, canUpdate, openEdit, deleteService, symbol],
 	);
 
 	const avgSalePrice =
@@ -311,68 +317,72 @@ export default function ServicesPage() {
 				/>
 			</div>
 
-			<Modal
-				open={createOpen}
-				onOpenChange={setCreateOpen}
-				trigger={<Button>+ New Service</Button>}
-				title="Create Service"
-			>
-				<form onSubmit={createForm.handleSubmit(onCreateSubmit)}>
-					<ServiceFormFields
-						register={createForm.register}
-						errors={createForm.formState.errors}
-						isPending={isCreating}
-						onClose={() => setCreateOpen(false)}
-						categoryOptions={categoryOptions}
-						subCategoryOptions={subCategoryOptions}
-						watchedCategoryId={watchedCreateCategoryId}
-						selectedSubCategoryId={watchedCreateSubCategoryId}
-						onCategoryChange={(value) =>
-							createForm.setValue("categoryId", value, {
-								shouldDirty: true,
-								shouldValidate: true,
-							})
-						}
-						onSubCategoryChange={(value) =>
-							createForm.setValue("subCategoryId", value, {
-								shouldDirty: true,
-								shouldValidate: true,
-							})
-						}
-					/>
-				</form>
-			</Modal>
+			{canCreate && (
+				<Modal
+					open={createOpen}
+					onOpenChange={setCreateOpen}
+					trigger={<Button>+ New Service</Button>}
+					title="Create Service"
+				>
+					<form onSubmit={createForm.handleSubmit(onCreateSubmit)}>
+						<ServiceFormFields
+							register={createForm.register}
+							errors={createForm.formState.errors}
+							isPending={isCreating}
+							onClose={() => setCreateOpen(false)}
+							categoryOptions={categoryOptions}
+							subCategoryOptions={subCategoryOptions}
+							watchedCategoryId={watchedCreateCategoryId}
+							selectedSubCategoryId={watchedCreateSubCategoryId}
+							onCategoryChange={(value) =>
+								createForm.setValue("categoryId", value, {
+									shouldDirty: true,
+									shouldValidate: true,
+								})
+							}
+							onSubCategoryChange={(value) =>
+								createForm.setValue("subCategoryId", value, {
+									shouldDirty: true,
+									shouldValidate: true,
+								})
+							}
+						/>
+					</form>
+				</Modal>
+			)}
 
-			<Modal
-				open={!!editService}
-				onOpenChange={(open) => !open && setEditService(null)}
-				title="Edit Service"
-			>
-				<form onSubmit={editForm.handleSubmit(onEditSubmit)}>
-					<ServiceFormFields
-						register={editForm.register}
-						errors={editForm.formState.errors}
-						isPending={isUpdating}
-						onClose={() => setEditService(null)}
-						categoryOptions={categoryOptions}
-						subCategoryOptions={subCategoryOptions}
-						watchedCategoryId={watchedEditCategoryId}
-						selectedSubCategoryId={watchedEditSubCategoryId}
-						onCategoryChange={(value) =>
-							editForm.setValue("categoryId", value, {
-								shouldDirty: true,
-								shouldValidate: true,
-							})
-						}
-						onSubCategoryChange={(value) =>
-							editForm.setValue("subCategoryId", value, {
-								shouldDirty: true,
-								shouldValidate: true,
-							})
-						}
-					/>
-				</form>
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!editService}
+					onOpenChange={(open) => !open && setEditService(null)}
+					title="Edit Service"
+				>
+					<form onSubmit={editForm.handleSubmit(onEditSubmit)}>
+						<ServiceFormFields
+							register={editForm.register}
+							errors={editForm.formState.errors}
+							isPending={isUpdating}
+							onClose={() => setEditService(null)}
+							categoryOptions={categoryOptions}
+							subCategoryOptions={subCategoryOptions}
+							watchedCategoryId={watchedEditCategoryId}
+							selectedSubCategoryId={watchedEditSubCategoryId}
+							onCategoryChange={(value) =>
+								editForm.setValue("categoryId", value, {
+									shouldDirty: true,
+									shouldValidate: true,
+								})
+							}
+							onSubCategoryChange={(value) =>
+								editForm.setValue("subCategoryId", value, {
+									shouldDirty: true,
+									shouldValidate: true,
+								})
+							}
+						/>
+					</form>
+				</Modal>
+			)}
 
 			<DataTable
 				title="Services"

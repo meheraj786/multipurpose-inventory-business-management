@@ -30,6 +30,7 @@ import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Separator } from "@/components/ui/separator";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useCreateCustomer, useGetCustomers } from "@/hooks/useCustomer";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
@@ -77,6 +78,9 @@ const PAYMENT_ICONS: Record<string, React.ReactNode> = {
 };
 
 export default function CreateSalePage() {
+	const canUpdate = useCan("SALE", "UPDATE");
+	const canDelete = useCan("SALE", "DELETE");
+	const canReadInvoice = useCan("INVOICE", "READ");
 	const router = useRouter();
 	const formRef = useRef<HTMLFormElement>(null);
 	const [_editTarget, setEditTarget] = useState<Sale | null>(null);
@@ -101,10 +105,13 @@ export default function CreateSalePage() {
 					onDelete: (sale) => setDeleteTarget(sale),
 					onCollectDue: (sale) => setDueTarget(sale),
 					onViewInvoice: (invoice) => setViewInvoice(invoice),
+					canUpdate,
+					canDelete,
+					canReadInvoice,
 				},
 				symbol,
 			),
-		[symbol],
+		[canDelete, canReadInvoice, canUpdate, symbol],
 	);
 
 	const showItems = modelHasItems(model);

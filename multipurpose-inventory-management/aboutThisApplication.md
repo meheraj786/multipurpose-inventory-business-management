@@ -51,11 +51,12 @@ The application is designed for the user experience rather than technical detail
 - simple sales and purchase tracking
 - basic stock and waste monitoring
 
-## What is not finished yet
+## Access control
 
-- The staff and role permission module is still under development.
-- The main inventory, sales, and purchase workflows are available.
-- Access control is partially prepared, but not yet completed.
+Account administrators can manage staff and create reusable roles. Each role
+grants module-level actions such as create, read, update, delete, restore, and
+stock operations where applicable. Role permissions are enforced by the API as
+well as reflected in the application navigation and controls.
 
 ## Main sections
 
@@ -71,6 +72,7 @@ The application is designed for the user experience rather than technical detail
 - Settings — app preferences and account details
 - Activity log — recent business actions
 - Trash — review deleted items later
+- Staff and Roles — manage staff accounts and reusable access roles (administrators only)
 
 ## Why it exists
 

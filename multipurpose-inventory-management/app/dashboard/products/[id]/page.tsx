@@ -24,6 +24,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetSingleProduct } from "@/hooks/useProducts";
 
@@ -31,6 +32,7 @@ export default function ProductDetailPage() {
 	const { id } = useParams<{ id: string }>();
 	const router = useRouter();
 	const [purchaseOpen, setPurchaseOpen] = useState(false);
+	const canCreatePurchase = useCan("PURCHASE", "CREATE");
 	const { symbol } = useCurrency();
 
 	const { data: product, isLoading } = useGetSingleProduct(id);
@@ -118,10 +120,12 @@ export default function ProductDetailPage() {
 						</p>
 					</div>
 				</div>
-				<Button onClick={() => setPurchaseOpen(true)}>
-					<Package className="mr-2 h-4 w-4" />
-					Purchase
-				</Button>
+				{canCreatePurchase && (
+					<Button onClick={() => setPurchaseOpen(true)}>
+						<Package className="mr-2 h-4 w-4" />
+						Purchase
+					</Button>
+				)}
 			</div>
 
 			<div className="grid gap-4 md:grid-cols-4">
@@ -387,16 +391,18 @@ export default function ProductDetailPage() {
 				</CardContent>
 			</Card>
 
-			<Modal
-				open={purchaseOpen}
-				onOpenChange={(open) => !open && setPurchaseOpen(false)}
-				title="Create Purchase"
-			>
-				<CreatePurchaseModal
-					initialProductId={id}
-					onClose={() => setPurchaseOpen(false)}
-				/>
-			</Modal>
+			{canCreatePurchase && (
+				<Modal
+					open={purchaseOpen}
+					onOpenChange={(open) => !open && setPurchaseOpen(false)}
+					title="Create Purchase"
+				>
+					<CreatePurchaseModal
+						initialProductId={id}
+						onClose={() => setPurchaseOpen(false)}
+					/>
+				</Modal>
+			)}
 		</div>
 	);
 }

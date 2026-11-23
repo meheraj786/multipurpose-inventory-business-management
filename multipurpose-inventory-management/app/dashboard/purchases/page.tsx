@@ -44,6 +44,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	useDeletePurchase,
@@ -125,6 +126,9 @@ const getDateRange = (
 };
 
 export default function PurchasesPage() {
+	const canCreate = useCan("PURCHASE", "CREATE");
+	const canUpdate = useCan("PURCHASE", "UPDATE");
+	const canDelete = useCan("PURCHASE", "DELETE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -291,7 +295,7 @@ export default function PurchasesPage() {
 									View Details
 								</Link>
 							</DropdownMenuItem>
-							{Number(row.original.due) > 0 && (
+							{Number(row.original.due) > 0 && canUpdate && (
 								<DropdownMenuItem
 									onClick={() => setPaymentTarget(row.original)}
 								>
@@ -299,24 +303,30 @@ export default function PurchasesPage() {
 									Record Payment
 								</DropdownMenuItem>
 							)}
-							<DropdownMenuItem onClick={() => setEditTarget(row.original)}>
-								<Pencil className="mr-2 h-4 w-4" />
-								Edit
-							</DropdownMenuItem>
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								className="text-destructive focus:text-destructive"
-								onClick={() => setDeleteTarget(row.original)}
-							>
-								<Trash2 className="mr-2 h-4 w-4" />
-								Delete
-							</DropdownMenuItem>
+							{canUpdate && (
+								<DropdownMenuItem onClick={() => setEditTarget(row.original)}>
+									<Pencil className="mr-2 h-4 w-4" />
+									Edit
+								</DropdownMenuItem>
+							)}
+							{canDelete && (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										className="text-destructive focus:text-destructive"
+										onClick={() => setDeleteTarget(row.original)}
+									>
+										<Trash2 className="mr-2 h-4 w-4" />
+										Delete
+									</DropdownMenuItem>
+								</>
+							)}
 						</DropdownMenuContent>
 					</DropdownMenu>
 				),
 			},
 		],
-		[symbol],
+		[canDelete, canUpdate, symbol],
 	);
 
 	return (
@@ -398,15 +408,17 @@ export default function PurchasesPage() {
 
 					<div className="flex-1" />
 
-					<Modal
-						open={createOpen}
-						onOpenChange={setCreateOpen}
-						trigger={<Button>+ New Purchase</Button>}
-						title="Create Purchase"
-						className="w-full"
-					>
-						<CreatePurchaseModal onClose={() => setCreateOpen(false)} />
-					</Modal>
+					{canCreate && (
+						<Modal
+							open={createOpen}
+							onOpenChange={setCreateOpen}
+							trigger={<Button>+ New Purchase</Button>}
+							title="Create Purchase"
+							className="w-full"
+						>
+							<CreatePurchaseModal onClose={() => setCreateOpen(false)} />
+						</Modal>
+					)}
 				</div>
 
 				{datePreset === "CUSTOM" && (
@@ -439,79 +451,87 @@ export default function PurchasesPage() {
 				)}
 			</div>
 
-			<Modal
-				open={!!paymentTarget}
-				onOpenChange={(open) => {
-					if (!open) setPaymentTarget(null);
-				}}
-				title="Record Payment"
-			>
-				{paymentTarget && (
-					<RecordPaymentModal
-						purchase={paymentTarget}
-						onClose={() => setPaymentTarget(null)}
-					/>
-				)}
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!paymentTarget}
+					onOpenChange={(open) => {
+						if (!open) setPaymentTarget(null);
+					}}
+					title="Record Payment"
+				>
+					{paymentTarget && (
+						<RecordPaymentModal
+							purchase={paymentTarget}
+							onClose={() => setPaymentTarget(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
-			<Modal
-				open={!!editTarget}
-				onOpenChange={(open) => {
-					if (!open) setEditTarget(null);
-				}}
-				title="Edit Purchase"
-			>
-				{editTarget && (
-					<EditPurchaseModal
-						purchase={editTarget}
-						onClose={() => setEditTarget(null)}
-					/>
-				)}
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!editTarget}
+					onOpenChange={(open) => {
+						if (!open) setEditTarget(null);
+					}}
+					title="Edit Purchase"
+				>
+					{editTarget && (
+						<EditPurchaseModal
+							purchase={editTarget}
+							onClose={() => setEditTarget(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
-			<AlertDialog
-				open={!!deleteTarget}
-				onOpenChange={(o) => !o && setDeleteTarget(null)}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle className="flex items-center gap-2">
-							<Trash2 className="h-5 w-5 text-destructive" />
-							Delete Purchase?
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							Purchase{" "}
-							<span className="font-mono font-semibold">
-								#{deleteTarget?.id.slice(0, 8).toUpperCase()}
-							</span>{" "}
-							will be permanently deleted. This cannot be undone.
-							{deleteTarget && Number(deleteTarget.paidAmount) > 0 && (
-								<span className="block mt-2 text-destructive font-medium">
-									This purchase has {Number(deleteTarget.paidAmount).toFixed(2)}{" "}
-									already paid — deletion will be blocked until payments are
-									reversed.
-								</span>
-							)}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={() => {
-								if (deleteTarget) {
-									deletePurchase(deleteTarget.id, {
-										onSuccess: () => setDeleteTarget(null),
-									});
-								}
-							}}
-						>
-							{isDeleting ? "Deleting..." : "Delete"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{canDelete && (
+				<AlertDialog
+					open={!!deleteTarget}
+					onOpenChange={(o) => !o && setDeleteTarget(null)}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle className="flex items-center gap-2">
+								<Trash2 className="h-5 w-5 text-destructive" />
+								Delete Purchase?
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								Purchase{" "}
+								<span className="font-mono font-semibold">
+									#{deleteTarget?.id.slice(0, 8).toUpperCase()}
+								</span>{" "}
+								will be permanently deleted. This cannot be undone.
+								{deleteTarget && Number(deleteTarget.paidAmount) > 0 && (
+									<span className="block mt-2 text-destructive font-medium">
+										This purchase has{" "}
+										{Number(deleteTarget.paidAmount).toFixed(2)} already paid —
+										deletion will be blocked until payments are reversed.
+									</span>
+								)}
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel disabled={isDeleting}>
+								Cancel
+							</AlertDialogCancel>
+							<AlertDialogAction
+								disabled={isDeleting}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								onClick={() => {
+									if (deleteTarget) {
+										deletePurchase(deleteTarget.id, {
+											onSuccess: () => setDeleteTarget(null),
+										});
+									}
+								}}
+							>
+								{isDeleting ? "Deleting..." : "Delete"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 
 			<DataTable
 				title="Purchases"

@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import {
 	type RawProduct,
@@ -266,6 +267,10 @@ function StockInForm({ rawProduct, onClose }: StockInFormProps) {
 }
 
 export default function RawProductsPage() {
+	const canCreate = useCan("RAW_PRODUCT", "CREATE");
+	const canUpdate = useCan("RAW_PRODUCT", "UPDATE");
+	const canDelete = useCan("RAW_PRODUCT", "DELETE");
+	const canStockIn = useCan("RAW_PRODUCT", "STOCK_IN");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editRawProduct, setEditRawProduct] = useState<RawProduct | null>(null);
 	const [stockInRawProduct, setStockInRawProduct] = useState<RawProduct | null>(
@@ -386,8 +391,11 @@ export default function RawProductsPage() {
 					}
 				},
 				onStockIn: (rp) => setStockInRawProduct(rp),
+				canUpdate,
+				canDelete,
+				canStockIn,
 			}),
-		[deleteRawProduct, openEdit],
+		[canDelete, canStockIn, canUpdate, deleteRawProduct, openEdit],
 	);
 
 	return (
@@ -415,61 +423,69 @@ export default function RawProductsPage() {
 				/>
 			</div>
 
-			<Modal
-				open={createOpen}
-				onOpenChange={setCreateOpen}
-				trigger={<Button>+ New Raw Product</Button>}
-				title="Create Raw Product"
-			>
-				<form onSubmit={createForm.handleSubmit(onCreateSubmit)}>
-					<RawProductFormFields
-						register={createForm.register}
-						errors={createForm.formState.errors}
-						isPending={isCreating}
-						onClose={() => setCreateOpen(false)}
-						categoryOptions={categoryOptions}
-						subCategoryOptions={subCategoryOptions}
-						unitOptions={unitOptions}
-						watchedCategoryId={watchedCreateCategoryId}
-					/>
-				</form>
-			</Modal>
+			{canCreate && (
+				<Modal
+					open={createOpen}
+					onOpenChange={setCreateOpen}
+					trigger={<Button>+ New Raw Product</Button>}
+					title="Create Raw Product"
+				>
+					<form onSubmit={createForm.handleSubmit(onCreateSubmit)}>
+						<RawProductFormFields
+							register={createForm.register}
+							errors={createForm.formState.errors}
+							isPending={isCreating}
+							onClose={() => setCreateOpen(false)}
+							categoryOptions={categoryOptions}
+							subCategoryOptions={subCategoryOptions}
+							unitOptions={unitOptions}
+							watchedCategoryId={watchedCreateCategoryId}
+						/>
+					</form>
+				</Modal>
+			)}
 			{/* stock button  */}
-			<Link href="/dashboard/raw-products/stocks">
-				<Button>Stock</Button>
-			</Link>
-			<Modal
-				open={!!editRawProduct}
-				onOpenChange={(open) => !open && setEditRawProduct(null)}
-				title="Edit Raw Product"
-			>
-				<form onSubmit={editForm.handleSubmit(onEditSubmit)}>
-					<RawProductFormFields
-						register={editForm.register}
-						errors={editForm.formState.errors}
-						isPending={isUpdating}
-						onClose={() => setEditRawProduct(null)}
-						categoryOptions={categoryOptions}
-						subCategoryOptions={subCategoryOptions}
-						unitOptions={unitOptions}
-						watchedCategoryId={watchedEditCategoryId}
-					/>
-				</form>
-			</Modal>
+			{canStockIn && (
+				<Link href="/dashboard/raw-products/stocks">
+					<Button>Stock</Button>
+				</Link>
+			)}
+			{canUpdate && (
+				<Modal
+					open={!!editRawProduct}
+					onOpenChange={(open) => !open && setEditRawProduct(null)}
+					title="Edit Raw Product"
+				>
+					<form onSubmit={editForm.handleSubmit(onEditSubmit)}>
+						<RawProductFormFields
+							register={editForm.register}
+							errors={editForm.formState.errors}
+							isPending={isUpdating}
+							onClose={() => setEditRawProduct(null)}
+							categoryOptions={categoryOptions}
+							subCategoryOptions={subCategoryOptions}
+							unitOptions={unitOptions}
+							watchedCategoryId={watchedEditCategoryId}
+						/>
+					</form>
+				</Modal>
+			)}
 
-			<Modal
-				open={!!stockInRawProduct}
-				onOpenChange={(open) => !open && setStockInRawProduct(null)}
-				title="Stock In"
-			>
-				{stockInRawProduct && (
-					<StockInForm
-						key={stockInRawProduct.id}
-						rawProduct={stockInRawProduct}
-						onClose={() => setStockInRawProduct(null)}
-					/>
-				)}
-			</Modal>
+			{canStockIn && (
+				<Modal
+					open={!!stockInRawProduct}
+					onOpenChange={(open) => !open && setStockInRawProduct(null)}
+					title="Stock In"
+				>
+					{stockInRawProduct && (
+						<StockInForm
+							key={stockInRawProduct.id}
+							rawProduct={stockInRawProduct}
+							onClose={() => setStockInRawProduct(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
 			<DataTable
 				title="Raw Products"

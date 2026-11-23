@@ -17,66 +17,99 @@ const DASHBOARD_KEYS = {
 	purchaseReport: "dashboard-purchase-report",
 };
 
-export const useDashboardSalesOverview = (params: DashboardQueryParams) =>
+export const useDashboardSalesOverview = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.salesOverview, params],
 		queryFn: () => DashboardApiService.getSalesOverview(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
-export const useDashboardOverviewStats = (params: DashboardQueryParams) =>
+export const useDashboardOverviewStats = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.stats, params],
 		queryFn: () => DashboardApiService.getOverviewStats(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
-export const useDashboardTopCustomers = (params: DashboardQueryParams) =>
+export const useDashboardTopCustomers = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.topCustomers, params],
 		queryFn: () => DashboardApiService.getTopCustomers(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
-export const useDashboardDueRanking = (params: DashboardQueryParams) =>
+export const useDashboardDueRanking = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.dueRanking, params],
 		queryFn: () => DashboardApiService.getDueRanking(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
-export const useDashboardCategoryRanking = (params: DashboardQueryParams) =>
+export const useDashboardCategoryRanking = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.categoryRanking, params],
 		queryFn: () => DashboardApiService.getCategoryRanking(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
-export const useDashboardProductRanking = (params: DashboardQueryParams) =>
+export const useDashboardProductRanking = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.productRanking, params],
 		queryFn: () => DashboardApiService.getProductRanking(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
-export const useDashboardLowStockAlert = () =>
+export const useDashboardLowStockAlert = (enabled = true) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.lowStockAlert],
 		queryFn: () => DashboardApiService.getLowStockAlert(),
+		enabled,
 	});
 
-export const useDashboardTopSuppliers = (params: DashboardQueryParams) =>
+export const useDashboardTopSuppliers = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.topSuppliers, params],
 		queryFn: () => DashboardApiService.getTopSuppliers(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
-export const useDashboardPurchaseOverview = (params: DashboardQueryParams) =>
+export const useDashboardPurchaseOverview = (
+	params: DashboardQueryParams,
+	enabled = true,
+) =>
 	useQuery({
 		queryKey: [DASHBOARD_KEYS.purchaseOverview, params],
 		queryFn: () => DashboardApiService.getPurchaseOverview(params),
 		placeholderData: (prev) => prev,
+		enabled,
 	});
 
 export const useDashboardPurchaseReport = (params: DashboardQueryParams) =>

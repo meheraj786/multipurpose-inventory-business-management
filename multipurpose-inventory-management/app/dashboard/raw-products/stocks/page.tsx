@@ -4,12 +4,14 @@ import { AlertTriangle, Boxes, Layers, Package } from "lucide-react";
 import { useState } from "react";
 import { MetricCard } from "@/components/appComponents/metric-card";
 import DataTable, { type PaginationParams } from "@/components/data-table";
+import { useCan } from "@/hooks/useCan";
 import { useGetRawProducts } from "@/hooks/useRawProducts";
 import type { RawProduct } from "@/lib/api/services/rawProduct.service";
 import { getRawProductStockColumns } from "./columns";
 import { StockInDialog } from "./StockInDialog";
 
 export default function RawProductStockPage() {
+	const canStockIn = useCan("RAW_PRODUCT", "STOCK_IN");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -37,6 +39,7 @@ export default function RawProductStockPage() {
 
 	const columns = getRawProductStockColumns({
 		onAddStock: (product) => setStockTarget(product),
+		canStockIn,
 	});
 
 	return (
@@ -76,7 +79,7 @@ export default function RawProductStockPage() {
 				searchPlaceholder="Search raw products..."
 			/>
 
-			{stockTarget && (
+			{canStockIn && stockTarget && (
 				<StockInDialog
 					rawProduct={stockTarget}
 					onClose={() => setStockTarget(null)}

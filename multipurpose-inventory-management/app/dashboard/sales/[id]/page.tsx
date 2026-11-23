@@ -39,6 +39,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useCreateInvoice, useUpdateInvoice } from "@/hooks/useInvoice";
 import type { Sale, SaleInvoice } from "@/hooks/useSale";
@@ -73,6 +74,9 @@ export default function SaleDetailPage() {
 	const queryClient = useQueryClient();
 	const [invoiceOpen, setInvoiceOpen] = useState(false);
 	const { symbol } = useCurrency();
+	const canUpdateSale = useCan("SALE", "UPDATE");
+	const canCreateReturn = useCan("SALE", "CREATE");
+	const canReadInvoice = useCan("INVOICE", "READ");
 	const [editingInvoice, setEditingInvoice] = useState<SaleInvoice | null>(
 		null,
 	);
@@ -224,15 +228,17 @@ export default function SaleDetailPage() {
 					</div>
 				</div>
 				<div className="flex gap-2">
-					<Button
-						variant="outline"
-						onClick={() => setIsReturnOpen(true)}
-						className="gap-2 border-neutral-300 hover:bg-neutral-100 dark:border-neutral-800 dark:hover:bg-neutral-900"
-					>
-						<RotateCcw className="h-4 w-4" />
-						Return Items
-					</Button>
-					{hasDue && (
+					{canCreateReturn && (
+						<Button
+							variant="outline"
+							onClick={() => setIsReturnOpen(true)}
+							className="gap-2 border-neutral-300 hover:bg-neutral-100 dark:border-neutral-800 dark:hover:bg-neutral-900"
+						>
+							<RotateCcw className="h-4 w-4" />
+							Return Items
+						</Button>
+					)}
+					{hasDue && canUpdateSale && (
 						<Button
 							variant="default"
 							onClick={() => setDueTarget(sale)}
@@ -821,14 +827,16 @@ export default function SaleDetailPage() {
 											{Number(invoice.grandTotal).toFixed(2)}
 										</TableCell>
 										<TableCell className="text-right">
-											<Button
-												variant="outline"
-												size="sm"
-												onClick={() => setViewingInvoice(invoice)}
-												className="h-8 text-xs"
-											>
-												View Invoice
-											</Button>
+											{canReadInvoice && (
+												<Button
+													variant="outline"
+													size="sm"
+													onClick={() => setViewingInvoice(invoice)}
+													className="h-8 text-xs"
+												>
+													View Invoice
+												</Button>
+											)}
 										</TableCell>
 									</TableRow>
 								))}
@@ -938,35 +946,39 @@ export default function SaleDetailPage() {
 				)}
 			</Modal>
 
-			<Modal
-				open={!!dueTarget}
-				onOpenChange={(open) => !open && setDueTarget(null)}
-				title="Collect Due Payment"
-			>
-				{dueTarget && (
-					<CollectDueModal
-						sale={dueTarget}
+			{canUpdateSale && (
+				<Modal
+					open={!!dueTarget}
+					onOpenChange={(open) => !open && setDueTarget(null)}
+					title="Collect Due Payment"
+				>
+					{dueTarget && (
+						<CollectDueModal
+							sale={dueTarget}
+							onClose={() => {
+								setDueTarget(null);
+								handleDueCollected();
+							}}
+						/>
+					)}
+				</Modal>
+			)}
+
+			{canCreateReturn && (
+				<Modal
+					open={isReturnOpen}
+					onOpenChange={(open) => !open && setIsReturnOpen(false)}
+					title="Issue Customer Return & Refund"
+				>
+					<ReturnItemsModal
+						sale={sale}
 						onClose={() => {
-							setDueTarget(null);
-							handleDueCollected();
+							setIsReturnOpen(false);
+							handleReturnProcessed();
 						}}
 					/>
-				)}
-			</Modal>
-
-			<Modal
-				open={isReturnOpen}
-				onOpenChange={(open) => !open && setIsReturnOpen(false)}
-				title="Issue Customer Return & Refund"
-			>
-				<ReturnItemsModal
-					sale={sale}
-					onClose={() => {
-						setIsReturnOpen(false);
-						handleReturnProcessed();
-					}}
-				/>
-			</Modal>
+				</Modal>
+			)}
 		</div>
 	);
 }

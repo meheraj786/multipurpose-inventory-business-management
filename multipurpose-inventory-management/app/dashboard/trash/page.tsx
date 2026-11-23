@@ -5,17 +5,6 @@ import { Filter, RotateCcw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { MetricCard } from "@/components/appComponents/metric-card";
 import DataTable, { type PaginationParams } from "@/components/data-table";
-// import {
-// 	AlertDialog,
-// 	AlertDialogAction,
-// 	AlertDialogCancel,
-// 	AlertDialogContent,
-// 	AlertDialogDescription,
-// 	AlertDialogFooter,
-// 	AlertDialogHeader,
-// 	AlertDialogTitle,
-// 	AlertDialogTrigger,
-// } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,6 +13,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCan } from "@/hooks/useCan";
 import {
 	useGetTrash,
 	usePermanentDelete,
@@ -51,9 +41,11 @@ const MODULES = [
 
 const createColumns = (
 	onRestore: (id: string) => void,
-	_onDelete: (id: string) => void,
+	onDelete: (id: string) => void,
 	isRestoring: boolean,
 	_isDeleting: boolean,
+	canRestore: boolean,
+	canDelete: boolean,
 ): ColumnDef<TrashResponse>[] => [
 	{
 		accessorKey: "itemName",
@@ -97,49 +89,39 @@ const createColumns = (
 			return (
 				<div className="flex items-center gap-2">
 					{/* Restore */}
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={isRestoring}
-						onClick={() => onRestore(id)}
-						className="gap-1.5"
-					>
-						<RotateCcw className="h-3.5 w-3.5" />
-						Restore
-					</Button>
+					{canRestore && (
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={isRestoring}
+							onClick={() => onRestore(id)}
+							className="gap-1.5"
+						>
+							<RotateCcw className="h-3.5 w-3.5" />
+							Restore
+						</Button>
+					)}
 
-					{/* Permanent delete */}
-					{/* <AlertDialog>
-						<AlertDialogTrigger asChild>
-							<Button
-								variant="destructive"
-								size="sm"
-								disabled={isDeleting}
-								className="gap-1.5"
-							>
-								<Trash2 className="h-3.5 w-3.5" />
-								Delete
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogHeader>
-								<AlertDialogTitle>Permanently delete?</AlertDialogTitle>
-								<AlertDialogDescription>
-									This action cannot be undone. &quot;{row.original.itemName}
-									&quot; will be permanently removed from the database.
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<AlertDialogFooter>
-								<AlertDialogCancel>Cancel</AlertDialogCancel>
-								<AlertDialogAction
-									onClick={() => onDelete(id)}
-									className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-								>
-									Delete permanently
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog> */}
+					{canDelete && (
+						<Button
+							variant="destructive"
+							size="sm"
+							disabled={_isDeleting}
+							className="gap-1.5"
+							onClick={() => {
+								if (
+									window.confirm(
+										`Permanently delete "${row.original.itemName}"?`,
+									)
+								) {
+									onDelete(id);
+								}
+							}}
+						>
+							<Trash2 className="h-3.5 w-3.5" />
+							Delete permanently
+						</Button>
+					)}
 				</div>
 			);
 		},
@@ -149,6 +131,8 @@ const createColumns = (
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TrashPage() {
+	const canRestore = useCan("TRASH", "RESTORE");
+	const canDelete = useCan("TRASH", "DELETE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 20,
@@ -172,6 +156,8 @@ export default function TrashPage() {
 		permanentDelete,
 		isRestoring,
 		isDeleting,
+		canRestore,
+		canDelete,
 	);
 
 	return (

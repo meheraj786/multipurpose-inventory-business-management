@@ -6,6 +6,7 @@ import {
 	Home,
 	Package,
 	Settings,
+	Shield,
 	// ShoppingBag,
 	ShoppingCart,
 	Stars,
@@ -23,6 +24,7 @@ export type NavItem = {
 	href: string;
 	icon: LucideIcon;
 	module: string;
+	action?: "CREATE" | "READ";
 };
 
 export type NavGroup = {
@@ -47,7 +49,7 @@ export const RETAIL_NAV: NavItem[] = [
 		label: "Inventory",
 		href: "/dashboard/inventory",
 		icon: Package,
-		module: "STOCK",
+		module: "PRODUCT",
 	},
 	{
 		label: "Suppliers",
@@ -65,7 +67,7 @@ export const RETAIL_NAV: NavItem[] = [
 		label: "Wastage",
 		href: "/dashboard/wastage",
 		icon: Trash2,
-		module: "STOCK",
+		module: "WASTAGE",
 	},
 ];
 
@@ -97,7 +99,7 @@ export const RESTAURANT_NAV: NavItem[] = [
 		label: "Wastage",
 		href: "/dashboard/wastage",
 		icon: Trash2,
-		module: "STOCK",
+		module: "WASTAGE",
 	},
 ];
 
@@ -114,6 +116,13 @@ export const SHARED_BUSINESS_NAV: NavItem[] = [
 		href: "/dashboard/sales",
 		icon: TrendingUp,
 		module: "SALE",
+	},
+	{
+		label: "New Sale",
+		href: "/dashboard/sales/create",
+		icon: TrendingUp,
+		module: "SALE",
+		action: "CREATE",
 	},
 	// {
 	// 	label: "Invoices",
@@ -142,12 +151,23 @@ export const TAXONOMY_NAV: NavItem[] = [
 // ─── Admin-only routes ────────────────────────────────────────────────────────
 export const ADMIN_NAV: NavItem[] = [
 	{
+		label: "Staff",
+		href: "/dashboard/staff",
+		icon: Users,
+		module: "STAFF",
+	},
+	{
+		label: "Roles & Permissions",
+		href: "/dashboard/roles",
+		icon: Shield,
+		module: "STAFF",
+	},
+	{
 		label: "My Assistant",
 		href: "/dashboard/assistant",
 		icon: Stars,
 		module: "ASSISTANT",
 	},
-	// { label: "Staff", href: "/dashboard/staff", icon: Users, module: "STAFF" },
 	{
 		label: "Activity Log",
 		href: "/dashboard/activityLog",

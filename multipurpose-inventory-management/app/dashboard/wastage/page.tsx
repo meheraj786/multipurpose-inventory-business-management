@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetPreparedProducts } from "@/hooks/usePreparedProducts";
 import { useGetProducts, useLookupProductByBarcode } from "@/hooks/useProducts";
 import { useGetRawProducts } from "@/hooks/useRawProducts";
@@ -78,6 +79,10 @@ const ASSET_TYPE_CONFIG: AssetTypeConfig[] = [
 export default function WastagePage() {
 	const queryClient = useQueryClient();
 	const businessModel = useBusinessModel();
+	const canCreateRecord = useCan("WASTAGE", "CREATE");
+	const canDeductStock = useCan("WASTAGE", "STOCK_OUT");
+	const canCreate = canCreateRecord && canDeductStock;
+	const canDelete = useCan("WASTAGE", "DELETE");
 
 	const allowedAssetTypes = useMemo(
 		() =>
@@ -327,16 +332,17 @@ export default function WastagePage() {
 		{
 			id: "actions",
 			header: "Actions",
-			cell: ({ row }: { row: { original: WastageDetail } }) => (
-				<Button
-					variant="ghost"
-					size="icon"
-					className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-					onClick={() => handleDelete(row.original.id)}
-				>
-					<Trash2 className="h-4 w-4" />
-				</Button>
-			),
+			cell: ({ row }: { row: { original: WastageDetail } }) =>
+				canDelete ? (
+					<Button
+						variant="ghost"
+						size="icon"
+						className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+						onClick={() => handleDelete(row.original.id)}
+					>
+						<Trash2 className="h-4 w-4" />
+					</Button>
+				) : null,
 		},
 	];
 
@@ -349,13 +355,15 @@ export default function WastagePage() {
 						Track and audit adjustments for spoiled, damaged, or expired stock.
 					</p>
 				</div>
-				<Button
-					onClick={() => setIsCreateOpen(true)}
-					className="gap-2"
-					disabled={!hasAnyStockableModule}
-				>
-					<Plus className="h-4 w-4" /> Log Wastage Adjustment
-				</Button>
+				{canCreate && (
+					<Button
+						onClick={() => setIsCreateOpen(true)}
+						className="gap-2"
+						disabled={!hasAnyStockableModule}
+					>
+						<Plus className="h-4 w-4" /> Log Wastage Adjustment
+					</Button>
+				)}
 			</div>
 
 			<div
@@ -418,185 +426,187 @@ export default function WastagePage() {
 				loading={isWastagesLoading}
 			/>
 
-			<Modal
-				open={isCreateOpen}
-				onOpenChange={setIsCreateOpen}
-				title="Log Spoilage or Stock Damage"
-			>
-				<form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
-					<div className="space-y-2">
-						<Label>Select Asset Classification</Label>
-						<div
-							className="grid gap-2"
-							style={{
-								gridTemplateColumns: `repeat(${allowedAssetTypes.length || 1}, minmax(0, 1fr))`,
-							}}
-						>
-							{allowedAssetTypes.map(({ type, label, icon: Icon }) => (
-								<Button
-									key={type}
-									type="button"
-									variant={assetType === type ? "default" : "outline"}
-									onClick={() => handleAssetTypeChange(type)}
-									className="h-10 text-xs gap-1.5"
-								>
-									<Icon className="h-4 w-4" /> {label}
-								</Button>
-							))}
+			{canCreate && (
+				<Modal
+					open={isCreateOpen}
+					onOpenChange={setIsCreateOpen}
+					title="Log Spoilage or Stock Damage"
+				>
+					<form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
+						<div className="space-y-2">
+							<Label>Select Asset Classification</Label>
+							<div
+								className="grid gap-2"
+								style={{
+									gridTemplateColumns: `repeat(${allowedAssetTypes.length || 1}, minmax(0, 1fr))`,
+								}}
+							>
+								{allowedAssetTypes.map(({ type, label, icon: Icon }) => (
+									<Button
+										key={type}
+										type="button"
+										variant={assetType === type ? "default" : "outline"}
+										onClick={() => handleAssetTypeChange(type)}
+										className="h-10 text-xs gap-1.5"
+									>
+										<Icon className="h-4 w-4" /> {label}
+									</Button>
+								))}
+							</div>
+							{allowedAssetTypes.length === 0 && (
+								<p className="text-xs text-muted-foreground">
+									No stockable modules are enabled for this account&apos;s
+									business model.
+								</p>
+							)}
 						</div>
-						{allowedAssetTypes.length === 0 && (
-							<p className="text-xs text-muted-foreground">
-								No stockable modules are enabled for this account&apos;s
-								business model.
-							</p>
+
+						{assetType === "PRODUCT" && (
+							<div className="space-y-1.5">
+								<BarcodeScannerInput onScan={selectScannedProduct} autoFocus />
+								<Label>Select Product</Label>
+								<Controller
+									name="productId"
+									control={control}
+									render={({ field }) => (
+										<SearchableCombobox
+											value={field.value || ""}
+											onChange={field.onChange}
+											options={productsList.map((p) => ({
+												value: p.id,
+												label: p.name,
+												description: p.barcode ? `Barcode: ${p.barcode}` : null,
+												searchValue: `${p.name} ${p.sku ?? ""} ${p.barcode ?? ""}`,
+											}))}
+											placeholder="Pick retail product"
+											searchPlaceholder="Search product..."
+											emptyText="No matching product found"
+										/>
+									)}
+								/>
+							</div>
 						)}
-					</div>
 
-					{assetType === "PRODUCT" && (
-						<div className="space-y-1.5">
-							<BarcodeScannerInput onScan={selectScannedProduct} autoFocus />
-							<Label>Select Product</Label>
-							<Controller
-								name="productId"
-								control={control}
-								render={({ field }) => (
-									<SearchableCombobox
-										value={field.value || ""}
-										onChange={field.onChange}
-										options={productsList.map((p) => ({
-											value: p.id,
-											label: p.name,
-											description: p.barcode ? `Barcode: ${p.barcode}` : null,
-											searchValue: `${p.name} ${p.sku ?? ""} ${p.barcode ?? ""}`,
-										}))}
-										placeholder="Pick retail product"
-										searchPlaceholder="Search product..."
-										emptyText="No matching product found"
-									/>
+						{assetType === "RAW_PRODUCT" && (
+							<div className="space-y-1.5">
+								<Label>Select Raw Material</Label>
+								<Controller
+									name="rawProductId"
+									control={control}
+									render={({ field }) => (
+										<SearchableCombobox
+											value={field.value || ""}
+											onChange={field.onChange}
+											options={rawProductsList.map((p) => ({
+												value: p.id,
+												label: p.name,
+											}))}
+											placeholder="Pick raw material"
+											searchPlaceholder="Search material..."
+											emptyText="No matching material found"
+										/>
+									)}
+								/>
+							</div>
+						)}
+
+						{assetType === "PREPARED_PRODUCT" && (
+							<div className="space-y-1.5">
+								<Label>Select Prepared Product</Label>
+								<Controller
+									name="preparedProductId"
+									control={control}
+									render={({ field }) => (
+										<SearchableCombobox
+											value={field.value || ""}
+											onChange={field.onChange}
+											options={preparedProductsList.map((p) => ({
+												value: p.id,
+												label: p.name,
+											}))}
+											placeholder="Pick prepared product batch"
+											searchPlaceholder="Search batch..."
+											emptyText="No matching batch found"
+										/>
+									)}
+								/>
+							</div>
+						)}
+
+						<div className="grid grid-cols-2 gap-4">
+							<div className="space-y-1.5">
+								<Label htmlFor="quantity">Quantity to Adjust</Label>
+								<Input
+									id="quantity"
+									type="number"
+									step="0.0001"
+									{...register("quantity", { valueAsNumber: true })}
+									className={errors.quantity ? "border-destructive" : ""}
+								/>
+								{errors.quantity && (
+									<p className="text-xs text-destructive">
+										{errors.quantity.message}
+									</p>
 								)}
-							/>
-						</div>
-					)}
+							</div>
 
-					{assetType === "RAW_PRODUCT" && (
-						<div className="space-y-1.5">
-							<Label>Select Raw Material</Label>
-							<Controller
-								name="rawProductId"
-								control={control}
-								render={({ field }) => (
-									<SearchableCombobox
-										value={field.value || ""}
-										onChange={field.onChange}
-										options={rawProductsList.map((p) => ({
-											value: p.id,
-											label: p.name,
-										}))}
-										placeholder="Pick raw material"
-										searchPlaceholder="Search material..."
-										emptyText="No matching material found"
-									/>
-								)}
-							/>
+							<div className="space-y-1.5">
+								<Label>Current System Stock</Label>
+								<div className="flex h-10 w-full items-center rounded-md border border-input bg-muted/30 px-3 py-2 text-sm font-semibold font-mono text-foreground select-none">
+									{activeAssetStock}
+								</div>
+							</div>
 						</div>
-					)}
 
-					{assetType === "PREPARED_PRODUCT" && (
 						<div className="space-y-1.5">
-							<Label>Select Prepared Product</Label>
-							<Controller
-								name="preparedProductId"
-								control={control}
-								render={({ field }) => (
-									<SearchableCombobox
-										value={field.value || ""}
-										onChange={field.onChange}
-										options={preparedProductsList.map((p) => ({
-											value: p.id,
-											label: p.name,
-										}))}
-										placeholder="Pick prepared product batch"
-										searchPlaceholder="Search batch..."
-										emptyText="No matching batch found"
-									/>
-								)}
-							/>
-						</div>
-					)}
-
-					<div className="grid grid-cols-2 gap-4">
-						<div className="space-y-1.5">
-							<Label htmlFor="quantity">Quantity to Adjust</Label>
+							<Label htmlFor="reason">Adjustment Reason</Label>
 							<Input
-								id="quantity"
-								type="number"
-								step="0.0001"
-								{...register("quantity", { valueAsNumber: true })}
-								className={errors.quantity ? "border-destructive" : ""}
+								id="reason"
+								placeholder="e.g. Expired, Spoiled during prep, Damaged"
+								{...register("reason")}
+								className={errors.reason ? "border-destructive" : ""}
 							/>
-							{errors.quantity && (
+							{errors.reason && (
 								<p className="text-xs text-destructive">
-									{errors.quantity.message}
+									{errors.reason.message}
 								</p>
 							)}
 						</div>
 
 						<div className="space-y-1.5">
-							<Label>Current System Stock</Label>
-							<div className="flex h-10 w-full items-center rounded-md border border-input bg-muted/30 px-3 py-2 text-sm font-semibold font-mono text-foreground select-none">
-								{activeAssetStock}
-							</div>
+							<Label htmlFor="notes">Additional Audit Notes</Label>
+							<Textarea
+								id="notes"
+								rows={3}
+								placeholder="Optional notes for further description..."
+								{...register("notes")}
+							/>
 						</div>
-					</div>
 
-					<div className="space-y-1.5">
-						<Label htmlFor="reason">Adjustment Reason</Label>
-						<Input
-							id="reason"
-							placeholder="e.g. Expired, Spoiled during prep, Damaged"
-							{...register("reason")}
-							className={errors.reason ? "border-destructive" : ""}
-						/>
-						{errors.reason && (
-							<p className="text-xs text-destructive">
-								{errors.reason.message}
-							</p>
-						)}
-					</div>
-
-					<div className="space-y-1.5">
-						<Label htmlFor="notes">Additional Audit Notes</Label>
-						<Textarea
-							id="notes"
-							rows={3}
-							placeholder="Optional notes for further description..."
-							{...register("notes")}
-						/>
-					</div>
-
-					<div className="flex justify-end gap-3 pt-2 border-t">
-						<Button
-							type="button"
-							variant="ghost"
-							onClick={() => {
-								reset();
-								setIsCreateOpen(false);
-							}}
-							disabled={createWastageMutation.isPending}
-						>
-							Cancel
-						</Button>
-						<Button
-							type="submit"
-							disabled={createWastageMutation.isPending || !assetType}
-						>
-							{createWastageMutation.isPending
-								? "Logging..."
-								: "Commit Stock Out"}
-						</Button>
-					</div>
-				</form>
-			</Modal>
+						<div className="flex justify-end gap-3 pt-2 border-t">
+							<Button
+								type="button"
+								variant="ghost"
+								onClick={() => {
+									reset();
+									setIsCreateOpen(false);
+								}}
+								disabled={createWastageMutation.isPending}
+							>
+								Cancel
+							</Button>
+							<Button
+								type="submit"
+								disabled={createWastageMutation.isPending || !assetType}
+							>
+								{createWastageMutation.isPending
+									? "Logging..."
+									: "Commit Stock Out"}
+							</Button>
+						</div>
+					</form>
+				</Modal>
+			)}
 		</div>
 	);
 }

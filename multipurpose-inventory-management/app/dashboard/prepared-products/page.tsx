@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
@@ -388,6 +389,10 @@ function ProduceStockModal({
 }
 
 export default function PreparedProductsPage() {
+	const canCreate = useCan("PREPARED_PRODUCT", "CREATE");
+	const canUpdate = useCan("PREPARED_PRODUCT", "UPDATE");
+	const canDelete = useCan("PREPARED_PRODUCT", "DELETE");
+	const canProduce = useCan("PREPARED_PRODUCT", "STOCK_IN");
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editPP, setEditPP] = useState<PreparedProductWithItems | null>(null);
 	const [producePP, setProducePP] = useState<PreparedProductWithItems | null>(
@@ -472,8 +477,11 @@ export default function PreparedProductsPage() {
 					}
 				},
 				onProduce: (pp: PreparedProduct) => handlersRef.current.onProduce(pp),
+				canUpdate,
+				canDelete,
+				canProduce,
 			}),
-		[deletePP],
+		[canDelete, canProduce, canUpdate, deletePP],
 	);
 
 	return (
@@ -501,94 +509,102 @@ export default function PreparedProductsPage() {
 				/>
 			</div>
 
-			<Modal
-				open={createOpen}
-				onOpenChange={(open) => {
-					setCreateOpen(open);
-					if (!open) setCreateCategoryId("");
-				}}
-				trigger={<Button>+ New Prepared Product</Button>}
-				title="Create Prepared Product"
-			>
-				<PreparedProductForm
-					key="create"
-					defaultValues={{
-						categoryId: "",
-						items: [{ rawProductId: "", quantity: 1, unit: "" }],
+			{canCreate && (
+				<Modal
+					open={createOpen}
+					onOpenChange={(open) => {
+						setCreateOpen(open);
+						if (!open) setCreateCategoryId("");
 					}}
-					isPending={isCreating}
-					onSubmit={(values) =>
-						createPP(values, { onSuccess: () => setCreateOpen(false) })
-					}
-					onClose={() => setCreateOpen(false)}
-					categoryOptions={categoryOptions}
-					subCategoryOptions={subCategoryOptions}
-					unitOptions={unitOptions}
-					rawProductOptions={rawProductOptions}
-					watchedCategoryId={createCategoryId}
-				/>
-			</Modal>
-			{/* stock button  */}
-			<Link href="/dashboard/prepared-products/stocks">
-				<Button>Stock</Button>
-			</Link>
-			<Modal
-				open={!!editPP}
-				onOpenChange={(open) => {
-					if (!open) {
-						setEditPP(null);
-						setEditCategoryId("");
-					}
-				}}
-				title="Edit Prepared Product"
-			>
-				{editPP && (
+					trigger={<Button>+ New Prepared Product</Button>}
+					title="Create Prepared Product"
+				>
 					<PreparedProductForm
-						key={editPP.id}
+						key="create"
 						defaultValues={{
-							name: editPP.name,
-							unitId: editPP.unitId,
-							categoryId: editPP.categoryId,
-							subCategoryId: editPP.subCategoryId ?? "",
-							rawMaterialCost: editPP.rawMaterialCost ?? 0,
-							defaultSalePrice: editPP.defaultSalePrice ?? 0,
-							description: editPP.description ?? "",
-							items: editPP.preparedProductItems?.map((item) => ({
-								rawProductId: item.rawProductId,
-								quantity: Number(item.quantity),
-								unit: item.unit,
-							})) ?? [{ rawProductId: "", quantity: 1, unit: "" }],
+							categoryId: "",
+							items: [{ rawProductId: "", quantity: 1, unit: "" }],
 						}}
-						isPending={isUpdating}
+						isPending={isCreating}
 						onSubmit={(values) =>
-							updatePP(
-								{ id: editPP.id, ...values },
-								{ onSuccess: () => setEditPP(null) },
-							)
+							createPP(values, { onSuccess: () => setCreateOpen(false) })
 						}
-						onClose={() => setEditPP(null)}
+						onClose={() => setCreateOpen(false)}
 						categoryOptions={categoryOptions}
 						subCategoryOptions={subCategoryOptions}
 						unitOptions={unitOptions}
 						rawProductOptions={rawProductOptions}
-						watchedCategoryId={editCategoryId}
+						watchedCategoryId={createCategoryId}
 					/>
-				)}
-			</Modal>
+				</Modal>
+			)}
+			{/* stock button  */}
+			{canProduce && (
+				<Link href="/dashboard/prepared-products/stocks">
+					<Button>Stock</Button>
+				</Link>
+			)}
+			{canUpdate && (
+				<Modal
+					open={!!editPP}
+					onOpenChange={(open) => {
+						if (!open) {
+							setEditPP(null);
+							setEditCategoryId("");
+						}
+					}}
+					title="Edit Prepared Product"
+				>
+					{editPP && (
+						<PreparedProductForm
+							key={editPP.id}
+							defaultValues={{
+								name: editPP.name,
+								unitId: editPP.unitId,
+								categoryId: editPP.categoryId,
+								subCategoryId: editPP.subCategoryId ?? "",
+								rawMaterialCost: editPP.rawMaterialCost ?? 0,
+								defaultSalePrice: editPP.defaultSalePrice ?? 0,
+								description: editPP.description ?? "",
+								items: editPP.preparedProductItems?.map((item) => ({
+									rawProductId: item.rawProductId,
+									quantity: Number(item.quantity),
+									unit: item.unit,
+								})) ?? [{ rawProductId: "", quantity: 1, unit: "" }],
+							}}
+							isPending={isUpdating}
+							onSubmit={(values) =>
+								updatePP(
+									{ id: editPP.id, ...values },
+									{ onSuccess: () => setEditPP(null) },
+								)
+							}
+							onClose={() => setEditPP(null)}
+							categoryOptions={categoryOptions}
+							subCategoryOptions={subCategoryOptions}
+							unitOptions={unitOptions}
+							rawProductOptions={rawProductOptions}
+							watchedCategoryId={editCategoryId}
+						/>
+					)}
+				</Modal>
+			)}
 
-			<Modal
-				open={!!producePP}
-				onOpenChange={(open) => !open && setProducePP(null)}
-				title="Produce Stock"
-			>
-				{producePP && (
-					<ProduceStockModal
-						key={producePP.id}
-						preparedProduct={producePP}
-						onClose={() => setProducePP(null)}
-					/>
-				)}
-			</Modal>
+			{canProduce && (
+				<Modal
+					open={!!producePP}
+					onOpenChange={(open) => !open && setProducePP(null)}
+					title="Produce Stock"
+				>
+					{producePP && (
+						<ProduceStockModal
+							key={producePP.id}
+							preparedProduct={producePP}
+							onClose={() => setProducePP(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
 			<DataTable
 				title="Prepared Products"

@@ -44,13 +44,15 @@ export function resolveNavGroups(user: AuthUser | null): NavGroup[] {
 	const modelItems: NavItem[] = model ? (MODEL_MAP[model] ?? []) : [];
 
 	// 2. Permission-filter for non-admins
-	const permittedModules = new Set(
-		(user.permissions ?? []).map((p) => p.module),
-	);
-
 	const filterByPermission = (items: NavItem[]): NavItem[] => {
 		if (isAdmin) return items;
-		return items.filter((item) => permittedModules.has(item.module));
+		return items.filter((item) =>
+			user.permissions?.some(
+				(permission) =>
+					permission.module === item.module &&
+					permission.actions.includes(item.action ?? "READ"),
+			),
+		);
 	};
 
 	// 3. Build groups
@@ -69,11 +71,20 @@ export function resolveNavGroups(user: AuthUser | null): NavGroup[] {
 		},
 	];
 
-	// 4. Admin group — only shown to ADMIN/DEVELOPER
-	if (isAdmin) {
+	// Staff can also access the permission-gated activity log and trash.
+	const administrationItems = isAdmin
+		? user.role === "DEVELOPER"
+			? ADMIN_NAV.filter((item) => item.module !== "STAFF")
+			: ADMIN_NAV
+		: filterByPermission(
+				ADMIN_NAV.filter((item) =>
+					["ACTIVITY_LOG", "TRASH"].includes(item.module),
+				),
+			);
+	if (administrationItems.length > 0) {
 		groups.push({
 			title: "Administration",
-			items: ADMIN_NAV,
+			items: administrationItems,
 		});
 	}
 

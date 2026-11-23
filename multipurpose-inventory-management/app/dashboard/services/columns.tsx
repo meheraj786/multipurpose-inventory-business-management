@@ -17,6 +17,8 @@ import type { Service } from "@/lib/api/services/service.service";
 type ColumnMeta = {
 	onEdit: (service: Service) => void;
 	onDelete: (id: string) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
 };
 
 const ActionsCell = ({
@@ -41,17 +43,21 @@ const ActionsCell = ({
 					<Eye className="mr-2 h-4 w-4" />
 					View Details
 				</DropdownMenuItem>
-				<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
-					<Pencil className="mr-2 h-4 w-4" />
-					Edit
-				</DropdownMenuItem>
-				<DropdownMenuItem
-					className="text-destructive"
-					onClick={() => meta.onDelete(row.original.id)}
-				>
-					<Trash2 className="mr-2 h-4 w-4" />
-					Delete
-				</DropdownMenuItem>
+				{meta.canUpdate && (
+					<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
+						<Pencil className="mr-2 h-4 w-4" />
+						Edit
+					</DropdownMenuItem>
+				)}
+				{meta.canDelete && (
+					<DropdownMenuItem
+						className="text-destructive"
+						onClick={() => meta.onDelete(row.original.id)}
+					>
+						<Trash2 className="mr-2 h-4 w-4" />
+						Delete
+					</DropdownMenuItem>
+				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

@@ -50,6 +50,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	useDashboardCategoryRanking,
@@ -98,16 +99,30 @@ export default function DashboardPage() {
 	const { symbol } = useCurrency();
 	const model = useBusinessModel();
 
-	const showProducts = isModuleAllowedForModel("PRODUCT", model);
-	const showRawProducts = isModuleAllowedForModel("RAW_PRODUCT", model);
-	const showPreparedProducts = isModuleAllowedForModel(
-		"PREPARED_PRODUCT",
-		model,
-	);
-	const showSupplier = isModuleAllowedForModel("SUPPLIER", model);
-	const showPurchase = isModuleAllowedForModel("PURCHASE", model);
-	const showService = isModuleAllowedForModel("SERVICE", model);
+	const canReadSale = useCan("SALE", "READ");
+	const canReadCustomer = useCan("CUSTOMER", "READ");
+	const canReadProduct = useCan("PRODUCT", "READ");
+	const canReadRawProduct = useCan("RAW_PRODUCT", "READ");
+	const canReadPreparedProduct = useCan("PREPARED_PRODUCT", "READ");
+	const canReadSupplier = useCan("SUPPLIER", "READ");
+	const canReadPurchase = useCan("PURCHASE", "READ");
+	const canReadService = useCan("SERVICE", "READ");
+	const canReadCategory = useCan("CATEGORY", "READ");
+	const canReadSubcategory = useCan("SUBCATEGORY", "READ");
 
+	const showProducts =
+		canReadProduct && isModuleAllowedForModel("PRODUCT", model);
+	const showRawProducts =
+		canReadRawProduct && isModuleAllowedForModel("RAW_PRODUCT", model);
+	const showPreparedProducts =
+		canReadPreparedProduct &&
+		isModuleAllowedForModel("PREPARED_PRODUCT", model);
+	const showSupplier =
+		canReadSupplier && isModuleAllowedForModel("SUPPLIER", model);
+	const showPurchase =
+		canReadPurchase && isModuleAllowedForModel("PURCHASE", model);
+	const showService =
+		canReadService && isModuleAllowedForModel("SERVICE", model);
 	const showLowStockCard = showProducts || showRawProducts;
 	const showBestSellersCard =
 		showProducts || showPreparedProducts || showService;
@@ -130,29 +145,51 @@ export default function DashboardPage() {
 		[range, customStart, customEnd],
 	);
 
-	const { data: stats, isLoading: statsLoading } =
-		useDashboardOverviewStats(queryParams);
+	const { data: stats, isLoading: statsLoading } = useDashboardOverviewStats(
+		queryParams,
+		canReadSale && canReadCustomer,
+	);
 	const { data: salesOverview, isLoading: chartLoading } =
-		useDashboardSalesOverview(queryParams);
-	const { data: topCustomers } = useDashboardTopCustomers({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: dueRanking } = useDashboardDueRanking({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: productRanking } = useDashboardProductRanking({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: lowStockAlert } = useDashboardLowStockAlert();
-	const { data: categoryRanking } = useDashboardCategoryRanking(queryParams);
-	const { data: topSuppliers } = useDashboardTopSuppliers({
-		...queryParams,
-		limit: 5,
-	});
-	const { data: purchaseOverview } = useDashboardPurchaseOverview(queryParams);
+		useDashboardSalesOverview(queryParams, canReadSale);
+	const { data: topCustomers } = useDashboardTopCustomers(
+		{
+			...queryParams,
+			limit: 5,
+		},
+		canReadSale && canReadCustomer,
+	);
+	const { data: dueRanking } = useDashboardDueRanking(
+		{
+			...queryParams,
+			limit: 5,
+		},
+		canReadSale && canReadCustomer,
+	);
+	const { data: productRanking } = useDashboardProductRanking(
+		{
+			...queryParams,
+			limit: 5,
+		},
+		canReadSale && (showProducts || showPreparedProducts || showService),
+	);
+	const { data: lowStockAlert } = useDashboardLowStockAlert(
+		showProducts || showRawProducts,
+	);
+	const { data: categoryRanking } = useDashboardCategoryRanking(
+		queryParams,
+		canReadSale && (canReadCategory || canReadSubcategory),
+	);
+	const { data: topSuppliers } = useDashboardTopSuppliers(
+		{
+			...queryParams,
+			limit: 5,
+		},
+		showPurchase && showSupplier,
+	);
+	const { data: purchaseOverview } = useDashboardPurchaseOverview(
+		queryParams,
+		showPurchase,
+	);
 
 	const chartData = useMemo(
 		() =>

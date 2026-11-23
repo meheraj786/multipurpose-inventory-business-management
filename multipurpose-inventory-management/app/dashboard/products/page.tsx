@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SearchableCombobox } from "@/components/ui/searchable-combobox";
 import { Textarea } from "@/components/ui/textarea";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useModelGuard } from "@/hooks/useModelGuard";
@@ -268,6 +269,9 @@ function ProductFormFields({
 }
 
 export default function ProductsPage() {
+	const canCreate = useCan("PRODUCT", "CREATE");
+	const canUpdate = useCan("PRODUCT", "UPDATE");
+	const canDelete = useCan("PRODUCT", "DELETE");
 	useModelGuard("retail");
 
 	const { data: categories } = useGetCategories();
@@ -358,10 +362,15 @@ export default function ProductsPage() {
 	const columns = useMemo(
 		() =>
 			getProductColumns(
-				{ onEdit: setEditingProduct, onDelete: deleteProduct },
+				{
+					onEdit: setEditingProduct,
+					onDelete: deleteProduct,
+					canUpdate,
+					canDelete,
+				},
 				symbol,
 			),
-		[deleteProduct, symbol],
+		[canDelete, canUpdate, deleteProduct, symbol],
 	);
 
 	const handleCreateSubmit = (values: CreateProductForm) => {
@@ -431,10 +440,12 @@ export default function ProductsPage() {
 						</button>
 					)}
 				</div>
-				<Button onClick={() => setIsCreateOpen(true)}>
-					<Plus className="h-4 w-4 mr-1.5" />
-					Add Product
-				</Button>
+				{canCreate && (
+					<Button onClick={() => setIsCreateOpen(true)}>
+						<Plus className="h-4 w-4 mr-1.5" />
+						Add Product
+					</Button>
+				)}
 			</div>
 
 			<DataTable
@@ -447,45 +458,49 @@ export default function ProductsPage() {
 				loading={isLoading}
 			/>
 
-			<Modal
-				open={isCreateOpen}
-				onOpenChange={setIsCreateOpen}
-				title="Add New Product"
-			>
-				<form onSubmit={createFormMethods.handleSubmit(handleCreateSubmit)}>
-					<ProductFormFields
-						control={createFormMethods.control}
-						register={createFormMethods.register}
-						errors={createFormMethods.formState.errors}
-						isPending={isCreatePending}
-						onClose={() => setIsCreateOpen(false)}
-						categoryOptions={categoryOptions}
-						subCategoryOptions={subCategoryOptions}
-						units={units}
-					/>
-				</form>
-			</Modal>
-
-			<Modal
-				open={!!editingProduct}
-				onOpenChange={(open) => !open && setEditingProduct(null)}
-				title="Edit Product"
-			>
-				{editingProduct && (
-					<form onSubmit={editFormMethods.handleSubmit(handleEditSubmit)}>
+			{canCreate && (
+				<Modal
+					open={isCreateOpen}
+					onOpenChange={setIsCreateOpen}
+					title="Add New Product"
+				>
+					<form onSubmit={createFormMethods.handleSubmit(handleCreateSubmit)}>
 						<ProductFormFields
-							control={editFormMethods.control}
-							register={editFormMethods.register}
-							errors={editFormMethods.formState.errors}
-							isPending={isUpdatePending}
-							onClose={() => setEditingProduct(null)}
+							control={createFormMethods.control}
+							register={createFormMethods.register}
+							errors={createFormMethods.formState.errors}
+							isPending={isCreatePending}
+							onClose={() => setIsCreateOpen(false)}
 							categoryOptions={categoryOptions}
 							subCategoryOptions={subCategoryOptions}
 							units={units}
 						/>
 					</form>
-				)}
-			</Modal>
+				</Modal>
+			)}
+
+			{canUpdate && (
+				<Modal
+					open={!!editingProduct}
+					onOpenChange={(open) => !open && setEditingProduct(null)}
+					title="Edit Product"
+				>
+					{editingProduct && (
+						<form onSubmit={editFormMethods.handleSubmit(handleEditSubmit)}>
+							<ProductFormFields
+								control={editFormMethods.control}
+								register={editFormMethods.register}
+								errors={editFormMethods.formState.errors}
+								isPending={isUpdatePending}
+								onClose={() => setEditingProduct(null)}
+								categoryOptions={categoryOptions}
+								subCategoryOptions={subCategoryOptions}
+								units={units}
+							/>
+						</form>
+					)}
+				</Modal>
+			)}
 		</div>
 	);
 }

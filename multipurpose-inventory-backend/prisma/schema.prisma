@@ -20,12 +20,14 @@ model User {
   password     String
   role         UserRole      @default(STAFF)
   isDeleted    Boolean       @default(false)
+  customRoleId String?
+  customRole   Role?         @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  permissions  Permission[]
 
   @@index([accountId])
   @@index([email])
+  @@index([customRoleId])
 }
 
 model Account {
@@ -49,7 +51,7 @@ model Account {
   updatedAt        DateTime      @updatedAt
 
   users                 User[]
-  permissions           Permission[]
+  roles                 Role[]
   categories            Category[]
   subCategories         SubCategory[]
   suppliers             Supplier[]
@@ -78,20 +80,32 @@ model Account {
   @@index([status])
 }
 
-model Permission {
-  id        String         @id @default(uuid())
-  userId    String
-  user      User           @relation(fields: [userId], references: [id])
-  name      String?
-  accountId String
-  account   Account        @relation(fields: [accountId], references: [id])
+model Role {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  accountId   String
+  account     Account          @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  permissions RolePermission[]
+  users       User[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@unique([accountId, name])
+  @@index([accountId])
+}
+
+model RolePermission {
+  id        String        @id @default(uuid())
+  roleId    String
+  role      Role          @relation(fields: [roleId], references: [id], onDelete: Cascade)
   module    SystemModule
   actions   SystemAction[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
-  @@unique([userId, module])
-  @@index([accountId])
+  @@unique([roleId, module])
+  @@index([roleId])
 }
 
 // ==================== BILLING ====================

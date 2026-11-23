@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, MoreHorizontal, Shield, Trash2 } from "lucide-react";
+import { Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -13,7 +13,6 @@ import type { StaffMember } from "@/hooks/useStaff";
 
 type ColumnMeta = {
 	onEdit: (staff: StaffMember) => void;
-	onManagePermissions: (staff: StaffMember) => void;
 	onDelete: (id: string) => void;
 };
 
@@ -28,16 +27,13 @@ export const getStaffColumns = (meta: ColumnMeta): ColumnDef<StaffMember>[] => [
 		cell: ({ row }) => row.original.name ?? "—",
 	},
 	{
-		accessorKey: "permissions",
-		header: "Permissions",
-		cell: ({ row }) => {
-			const count = row.original.permissions?.length ?? 0;
-			return (
-				<span className="text-sm text-muted-foreground">
-					{count} module{count !== 1 ? "s" : ""}
-				</span>
-			);
-		},
+		accessorKey: "customRole",
+		header: "Role",
+		cell: ({ row }) => (
+			<span className="text-sm">
+				{row.original.customRole?.name ?? "No role"}
+			</span>
+		),
 	},
 	{
 		accessorKey: "createdAt",
@@ -57,12 +53,6 @@ export const getStaffColumns = (meta: ColumnMeta): ColumnDef<StaffMember>[] => [
 					<DropdownMenuItem onClick={() => meta.onEdit(row.original)}>
 						<Edit className="mr-2 h-4 w-4" />
 						Edit Info
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={() => meta.onManagePermissions(row.original)}
-					>
-						<Shield className="mr-2 h-4 w-4" />
-						Manage Permissions
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						className="text-destructive"

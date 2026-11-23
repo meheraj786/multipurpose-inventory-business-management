@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	useDeleteSupplier,
@@ -61,6 +62,8 @@ export default function SupplierDetailPage() {
 	const [editOpen, setEditOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const { symbol } = useCurrency();
+	const canUpdate = useCan("SUPPLIER", "UPDATE");
+	const canDelete = useCan("SUPPLIER", "DELETE");
 
 	const { data: supplier, isLoading } = useGetSupplier(id);
 	const { mutate: toggleActive, isPending: toggling } =
@@ -126,29 +129,39 @@ export default function SupplierDetailPage() {
 				</div>
 
 				<div className="flex items-center gap-2">
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={toggling}
-						onClick={() => toggleActive(supplier.id)}
-					>
-						<Power className="mr-2 h-4 w-4" />
-						{supplier.isActive ? "Deactivate" : "Activate"}
-					</Button>
+					{canUpdate && (
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={toggling}
+							onClick={() => toggleActive(supplier.id)}
+						>
+							<Power className="mr-2 h-4 w-4" />
+							{supplier.isActive ? "Deactivate" : "Activate"}
+						</Button>
+					)}
 
-					<Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-						<Pencil className="mr-2 h-4 w-4" />
-						Edit
-					</Button>
+					{canUpdate && (
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setEditOpen(true)}
+						>
+							<Pencil className="mr-2 h-4 w-4" />
+							Edit
+						</Button>
+					)}
 
-					<Button
-						variant="destructive"
-						size="sm"
-						onClick={() => setDeleteOpen(true)}
-					>
-						<Trash2 className="mr-2 h-4 w-4" />
-						Delete
-					</Button>
+					{canDelete && (
+						<Button
+							variant="destructive"
+							size="sm"
+							onClick={() => setDeleteOpen(true)}
+						>
+							<Trash2 className="mr-2 h-4 w-4" />
+							Delete
+						</Button>
+					)}
 				</div>
 			</div>
 
@@ -307,44 +320,48 @@ export default function SupplierDetailPage() {
 				</CardContent>
 			</Card>
 
-			<Modal open={editOpen} onOpenChange={setEditOpen} title="Edit Supplier">
-				<SupplierFormModal
-					supplier={supplier}
-					onClose={() => setEditOpen(false)}
-				/>
-			</Modal>
+			{canUpdate && (
+				<Modal open={editOpen} onOpenChange={setEditOpen} title="Edit Supplier">
+					<SupplierFormModal
+						supplier={supplier}
+						onClose={() => setEditOpen(false)}
+					/>
+				</Modal>
+			)}
 
-			<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Delete supplier?</AlertDialogTitle>
-						<AlertDialogDescription>
-							&quot;{supplier.name}&quot; will be moved to trash. You can
-							restore it later.
-							{totalDue > 0 && (
-								<span className="block mt-2 text-destructive font-medium">
-									This supplier has {symbol}
-									{totalDue.toFixed(2)} in outstanding due.
-								</span>
-							)}
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={() =>
-								deleteSupplier(supplier.id, {
-									onSuccess: () => router.push("/dashboard/suppliers"),
-								})
-							}
-						>
-							{isDeleting ? "Deleting..." : "Move to Trash"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{canDelete && (
+				<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete supplier?</AlertDialogTitle>
+							<AlertDialogDescription>
+								&quot;{supplier.name}&quot; will be moved to trash. You can
+								restore it later.
+								{totalDue > 0 && (
+									<span className="block mt-2 text-destructive font-medium">
+										This supplier has {symbol}
+										{totalDue.toFixed(2)} in outstanding due.
+									</span>
+								)}
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								disabled={isDeleting}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								onClick={() =>
+									deleteSupplier(supplier.id, {
+										onSuccess: () => router.push("/dashboard/suppliers"),
+									})
+								}
+							>
+								{isDeleting ? "Deleting..." : "Move to Trash"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 		</div>
 	);
 }

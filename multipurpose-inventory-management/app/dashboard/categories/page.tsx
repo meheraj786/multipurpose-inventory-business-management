@@ -18,6 +18,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/hooks/useCan";
 import {
 	// useCreateCategory,
 	useDeleteCategory,
@@ -27,6 +28,9 @@ import type { CategoryData } from "@/validation/category.schema";
 import { createCategoryColumns } from "./columns";
 
 export default function CategoryPage() {
+	const canCreate = useCan("CATEGORY", "CREATE");
+	const canUpdate = useCan("CATEGORY", "UPDATE");
+	const canDelete = useCan("CATEGORY", "DELETE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -54,8 +58,10 @@ export default function CategoryPage() {
 			createCategoryColumns({
 				onEdit: (cat) => setEditTarget(cat),
 				onDelete: (cat) => setDeleteTarget(cat),
+				canUpdate,
+				canDelete,
 			}),
-		[],
+		[canDelete, canUpdate],
 	);
 
 	return (
@@ -80,63 +86,69 @@ export default function CategoryPage() {
 			</div>
 
 			{/* Create button + modal */}
-			<Modal
-				open={createOpen}
-				onOpenChange={setCreateOpen}
-				trigger={<Button>+ Add Category</Button>}
-				title="Add Category"
-			>
-				<CategoryFormModal onClose={() => setCreateOpen(false)} />
-			</Modal>
+			{canCreate && (
+				<Modal
+					open={createOpen}
+					onOpenChange={setCreateOpen}
+					trigger={<Button>+ Add Category</Button>}
+					title="Add Category"
+				>
+					<CategoryFormModal onClose={() => setCreateOpen(false)} />
+				</Modal>
+			)}
 
 			{/* Edit modal */}
-			<Modal
-				open={!!editTarget}
-				onOpenChange={(o) => !o && setEditTarget(null)}
-				title="Edit Category"
-			>
-				{editTarget && (
-					<CategoryFormModal
-						category={editTarget}
-						onClose={() => setEditTarget(null)}
-					/>
-				)}
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!editTarget}
+					onOpenChange={(o) => !o && setEditTarget(null)}
+					title="Edit Category"
+				>
+					{editTarget && (
+						<CategoryFormModal
+							category={editTarget}
+							onClose={() => setEditTarget(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
 			{/* Delete alert dialog */}
-			<AlertDialog
-				open={!!deleteTarget}
-				onOpenChange={(o) => !o && setDeleteTarget(null)}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Delete category?</AlertDialogTitle>
-						<AlertDialogDescription>
-							<span className="font-semibold">
-								&quot;{deleteTarget?.name}&quot;
-							</span>{" "}
-							will be moved to trash. You can restore it later from the Trash
-							page.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={() => {
-								if (deleteTarget) {
-									deleteCategory(deleteTarget.id, {
-										onSuccess: () => setDeleteTarget(null),
-									});
-								}
-							}}
-						>
-							{isDeleting ? "Deleting..." : "Move to Trash"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{canDelete && (
+				<AlertDialog
+					open={!!deleteTarget}
+					onOpenChange={(o) => !o && setDeleteTarget(null)}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete category?</AlertDialogTitle>
+							<AlertDialogDescription>
+								<span className="font-semibold">
+									&quot;{deleteTarget?.name}&quot;
+								</span>{" "}
+								will be moved to trash. You can restore it later from the Trash
+								page.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								disabled={isDeleting}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								onClick={() => {
+									if (deleteTarget) {
+										deleteCategory(deleteTarget.id, {
+											onSuccess: () => setDeleteTarget(null),
+										});
+									}
+								}}
+							>
+								{isDeleting ? "Deleting..." : "Move to Trash"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 
 			{/* Table */}
 			<DataTable

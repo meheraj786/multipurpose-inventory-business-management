@@ -16,11 +16,15 @@ import type { CustomerData } from "@/validation/customer.schema";
 type CustomerColumnsProps = {
 	onEdit: (customer: CustomerData) => void;
 	onDelete: (customer: CustomerData) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
 };
 
 export const createCustomerColumns = ({
 	onEdit,
 	onDelete,
+	canUpdate,
+	canDelete,
 }: CustomerColumnsProps): ColumnDef<CustomerData>[] => [
 	{
 		accessorKey: "name",
@@ -88,16 +92,20 @@ export const createCustomerColumns = ({
 							</Link>
 						</DropdownMenuItem>
 
-						<DropdownMenuItem onClick={() => onEdit(customer)}>
-							Edit Info
-						</DropdownMenuItem>
+						{canUpdate && (
+							<DropdownMenuItem onClick={() => onEdit(customer)}>
+								Edit Info
+							</DropdownMenuItem>
+						)}
 
-						<DropdownMenuItem
-							className="text-red-600 focus:text-red-600 focus:bg-red-50"
-							onClick={() => onDelete(customer)}
-						>
-							Delete
-						</DropdownMenuItem>
+						{canDelete && (
+							<DropdownMenuItem
+								className="text-red-600 focus:text-red-600 focus:bg-red-50"
+								onClick={() => onDelete(customer)}
+							>
+								Delete
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

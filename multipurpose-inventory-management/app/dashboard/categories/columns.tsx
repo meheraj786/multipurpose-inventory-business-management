@@ -17,6 +17,8 @@ import type { CategoryData } from "@/validation/category.schema";
 type ColumnCallbacks = {
 	onEdit: (category: CategoryData) => void;
 	onDelete: (category: CategoryData) => void;
+	canUpdate: boolean;
+	canDelete: boolean;
 };
 
 export const createCategoryColumns = (
@@ -79,18 +81,24 @@ export const createCategoryColumns = (
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						<DropdownMenuItem onClick={() => callbacks.onEdit(category)}>
-							<Pencil className="mr-2 h-4 w-4" />
-							Edit
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							className="text-destructive focus:text-destructive"
-							onClick={() => callbacks.onDelete(category)}
-						>
-							<Trash2 className="mr-2 h-4 w-4" />
-							Delete
-						</DropdownMenuItem>
+						{callbacks.canUpdate && (
+							<DropdownMenuItem onClick={() => callbacks.onEdit(category)}>
+								<Pencil className="mr-2 h-4 w-4" />
+								Edit
+							</DropdownMenuItem>
+						)}
+						{callbacks.canUpdate && callbacks.canDelete && (
+							<DropdownMenuSeparator />
+						)}
+						{callbacks.canDelete && (
+							<DropdownMenuItem
+								className="text-destructive focus:text-destructive"
+								onClick={() => callbacks.onDelete(category)}
+							>
+								<Trash2 className="mr-2 h-4 w-4" />
+								Delete
+							</DropdownMenuItem>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			);

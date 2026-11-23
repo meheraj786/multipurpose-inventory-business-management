@@ -17,6 +17,7 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useCan } from "@/hooks/useCan";
 import { useGetCategories } from "@/hooks/useCategories";
 import {
 	useDeleteSubCategory,
@@ -26,6 +27,9 @@ import type { SubCategoryData } from "@/validation/subcategory.schema";
 import { createSubCategoryColumns } from "./columns";
 
 export default function SubCategoryPage() {
+	const canCreate = useCan("SUBCATEGORY", "CREATE");
+	const canUpdate = useCan("SUBCATEGORY", "UPDATE");
+	const canDelete = useCan("SUBCATEGORY", "DELETE");
 	const [tableParams, setTableParams] = useState<PaginationParams>({
 		page: 1,
 		pageSize: 10,
@@ -56,8 +60,10 @@ export default function SubCategoryPage() {
 			createSubCategoryColumns({
 				onEdit: (sub) => setEditTarget(sub),
 				onDelete: (sub) => setDeleteTarget(sub),
+				canUpdate,
+				canDelete,
 			}),
-		[],
+		[canDelete, canUpdate],
 	);
 
 	return (
@@ -77,63 +83,69 @@ export default function SubCategoryPage() {
 			</div>
 
 			{/* Create modal */}
-			<Modal
-				open={createOpen}
-				onOpenChange={setCreateOpen}
-				trigger={<Button>+ New Subcategory</Button>}
-				title="Create Subcategory"
-			>
-				<SubCategoryFormModal onClose={() => setCreateOpen(false)} />
-			</Modal>
+			{canCreate && (
+				<Modal
+					open={createOpen}
+					onOpenChange={setCreateOpen}
+					trigger={<Button>+ New Subcategory</Button>}
+					title="Create Subcategory"
+				>
+					<SubCategoryFormModal onClose={() => setCreateOpen(false)} />
+				</Modal>
+			)}
 
 			{/* Edit modal */}
-			<Modal
-				open={!!editTarget}
-				onOpenChange={(o) => !o && setEditTarget(null)}
-				title="Edit Subcategory"
-			>
-				{editTarget && (
-					<SubCategoryFormModal
-						subCategory={editTarget}
-						onClose={() => setEditTarget(null)}
-					/>
-				)}
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!editTarget}
+					onOpenChange={(o) => !o && setEditTarget(null)}
+					title="Edit Subcategory"
+				>
+					{editTarget && (
+						<SubCategoryFormModal
+							subCategory={editTarget}
+							onClose={() => setEditTarget(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
 			{/* Delete alert dialog */}
-			<AlertDialog
-				open={!!deleteTarget}
-				onOpenChange={(o) => !o && setDeleteTarget(null)}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Delete subcategory?</AlertDialogTitle>
-						<AlertDialogDescription>
-							<span className="font-semibold">
-								&quot;{deleteTarget?.name}&quot;
-							</span>{" "}
-							will be moved to trash. You can restore it later from the Trash
-							page.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={() => {
-								if (deleteTarget) {
-									deleteSubCategory(deleteTarget.id, {
-										onSuccess: () => setDeleteTarget(null),
-									});
-								}
-							}}
-						>
-							{isDeleting ? "Deleting..." : "Move to Trash"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{canDelete && (
+				<AlertDialog
+					open={!!deleteTarget}
+					onOpenChange={(o) => !o && setDeleteTarget(null)}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle>Delete subcategory?</AlertDialogTitle>
+							<AlertDialogDescription>
+								<span className="font-semibold">
+									&quot;{deleteTarget?.name}&quot;
+								</span>{" "}
+								will be moved to trash. You can restore it later from the Trash
+								page.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel>Cancel</AlertDialogCancel>
+							<AlertDialogAction
+								disabled={isDeleting}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								onClick={() => {
+									if (deleteTarget) {
+										deleteSubCategory(deleteTarget.id, {
+											onSuccess: () => setDeleteTarget(null),
+										});
+									}
+								}}
+							>
+								{isDeleting ? "Deleting..." : "Move to Trash"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 
 			<DataTable
 				title="Subcategories List"

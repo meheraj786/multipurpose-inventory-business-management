@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useGetPurchase, useGetPurchasePayments } from "@/hooks/usePurchases";
 import type { PurchasePaymentStatus } from "@/lib/api/services/purchase.service";
@@ -57,6 +58,7 @@ export default function PurchaseDetailPage() {
 	const params = useParams<{ id: string }>();
 	const router = useRouter();
 	const { symbol } = useCurrency();
+	const canUpdate = useCan("PURCHASE", "UPDATE");
 	const [paymentOpen, setPaymentOpen] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
 
@@ -121,11 +123,13 @@ export default function PurchaseDetailPage() {
 					>
 						{STATUS_LABELS[purchase.paymentStatus]}
 					</Badge>
-					<Button variant="outline" onClick={() => setEditOpen(true)}>
-						<Pencil className="mr-2 h-4 w-4" />
-						Edit
-					</Button>
-					{due > 0 && (
+					{canUpdate && (
+						<Button variant="outline" onClick={() => setEditOpen(true)}>
+							<Pencil className="mr-2 h-4 w-4" />
+							Edit
+						</Button>
+					)}
+					{due > 0 && canUpdate && (
 						<Button onClick={() => setPaymentOpen(true)}>
 							<Wallet className="mr-2 h-4 w-4" />
 							Make Payment
@@ -347,23 +351,26 @@ export default function PurchaseDetailPage() {
 				</CardContent>
 			</Card>
 
-			<Modal
-				open={paymentOpen}
-				onOpenChange={setPaymentOpen}
-				title="Record Payment"
-			>
-				<RecordPaymentModal
-					purchase={purchase}
-					onClose={() => setPaymentOpen(false)}
-				/>
-			</Modal>
-
-			<Modal open={editOpen} onOpenChange={setEditOpen} title="Edit Purchase">
-				<EditPurchaseModal
-					purchase={purchase}
-					onClose={() => setEditOpen(false)}
-				/>
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={paymentOpen}
+					onOpenChange={setPaymentOpen}
+					title="Record Payment"
+				>
+					<RecordPaymentModal
+						purchase={purchase}
+						onClose={() => setPaymentOpen(false)}
+					/>
+				</Modal>
+			)}
+			{canUpdate && (
+				<Modal open={editOpen} onOpenChange={setEditOpen} title="Edit Purchase">
+					<EditPurchaseModal
+						purchase={purchase}
+						onClose={() => setEditOpen(false)}
+					/>
+				</Modal>
+			)}
 		</div>
 	);
 }

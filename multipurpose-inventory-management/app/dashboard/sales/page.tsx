@@ -33,6 +33,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { useCan } from "@/hooks/useCan";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
 	type Sale,
@@ -79,6 +80,10 @@ function getDateRange(
 }
 
 export default function SalesPage() {
+	const canCreate = useCan("SALE", "CREATE");
+	const canUpdate = useCan("SALE", "UPDATE");
+	const canDelete = useCan("SALE", "DELETE");
+	const canReadInvoice = useCan("INVOICE", "READ");
 	const [editTarget, setEditTarget] = useState<Sale | null>(null);
 	const [deleteTarget, setDeleteTarget] = useState<Sale | null>(null);
 	const [dueTarget, setDueTarget] = useState<Sale | null>(null);
@@ -139,10 +144,13 @@ export default function SalesPage() {
 						setActiveInvoice(invoice);
 						setActiveInvoiceSale(sale);
 					},
+					canUpdate,
+					canDelete,
+					canReadInvoice,
 				},
 				symbol,
 			),
-		[symbol],
+		[canDelete, canReadInvoice, canUpdate, symbol],
 	);
 
 	return (
@@ -171,9 +179,11 @@ export default function SalesPage() {
 			</div>
 
 			<div className="flex justify-end">
-				<Link href="/dashboard/sales/create">
-					<Button>+ Create Sale</Button>
-				</Link>
+				{canCreate && (
+					<Link href="/dashboard/sales/create">
+						<Button>+ Create Sale</Button>
+					</Link>
+				)}
 			</div>
 			{/* Filter bar */}
 			<div className="flex flex-wrap items-end gap-4 p-4 bg-muted/30 rounded-lg">
@@ -246,35 +256,39 @@ export default function SalesPage() {
 				</Button>
 			</div>
 			{/* Modals (unchanged) */}
-			<Modal
-				open={!!editTarget}
-				onOpenChange={(open) => {
-					if (!open) setEditTarget(null);
-				}}
-				title="Edit Sale"
-			>
-				{editTarget && (
-					<EditSaleModal
-						sale={editTarget}
-						onClose={() => setEditTarget(null)}
-					/>
-				)}
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!editTarget}
+					onOpenChange={(open) => {
+						if (!open) setEditTarget(null);
+					}}
+					title="Edit Sale"
+				>
+					{editTarget && (
+						<EditSaleModal
+							sale={editTarget}
+							onClose={() => setEditTarget(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
-			<Modal
-				open={!!dueTarget}
-				onOpenChange={(open) => {
-					if (!open) setDueTarget(null);
-				}}
-				title="Collect Due Payment"
-			>
-				{dueTarget && (
-					<CollectDueModal
-						sale={dueTarget}
-						onClose={() => setDueTarget(null)}
-					/>
-				)}
-			</Modal>
+			{canUpdate && (
+				<Modal
+					open={!!dueTarget}
+					onOpenChange={(open) => {
+						if (!open) setDueTarget(null);
+					}}
+					title="Collect Due Payment"
+				>
+					{dueTarget && (
+						<CollectDueModal
+							sale={dueTarget}
+							onClose={() => setDueTarget(null)}
+						/>
+					)}
+				</Modal>
+			)}
 
 			<Modal
 				open={!!activeInvoice}
@@ -299,44 +313,48 @@ export default function SalesPage() {
 				)}
 			</Modal>
 
-			<AlertDialog
-				open={!!deleteTarget}
-				onOpenChange={(open) => {
-					if (!open) setDeleteTarget(null);
-				}}
-			>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle className="flex items-center gap-2">
-							<Trash2 className="h-5 w-5 text-destructive" />
-							Delete Sale?
-						</AlertDialogTitle>
-						<AlertDialogDescription>
-							Sale{" "}
-							<span className="font-mono font-semibold">
-								#{deleteTarget?.id.slice(0, 8).toUpperCase()}
-							</span>{" "}
-							will be permanently deleted. This cannot be undone.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-						<AlertDialogAction
-							disabled={isDeleting}
-							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-							onClick={() => {
-								if (deleteTarget) {
-									deleteSale(deleteTarget.id, {
-										onSuccess: () => setDeleteTarget(null),
-									});
-								}
-							}}
-						>
-							{isDeleting ? "Deleting..." : "Delete"}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
+			{canDelete && (
+				<AlertDialog
+					open={!!deleteTarget}
+					onOpenChange={(open) => {
+						if (!open) setDeleteTarget(null);
+					}}
+				>
+					<AlertDialogContent>
+						<AlertDialogHeader>
+							<AlertDialogTitle className="flex items-center gap-2">
+								<Trash2 className="h-5 w-5 text-destructive" />
+								Delete Sale?
+							</AlertDialogTitle>
+							<AlertDialogDescription>
+								Sale{" "}
+								<span className="font-mono font-semibold">
+									#{deleteTarget?.id.slice(0, 8).toUpperCase()}
+								</span>{" "}
+								will be permanently deleted. This cannot be undone.
+							</AlertDialogDescription>
+						</AlertDialogHeader>
+						<AlertDialogFooter>
+							<AlertDialogCancel disabled={isDeleting}>
+								Cancel
+							</AlertDialogCancel>
+							<AlertDialogAction
+								disabled={isDeleting}
+								className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+								onClick={() => {
+									if (deleteTarget) {
+										deleteSale(deleteTarget.id, {
+											onSuccess: () => setDeleteTarget(null),
+										});
+									}
+								}}
+							>
+								{isDeleting ? "Deleting..." : "Delete"}
+							</AlertDialogAction>
+						</AlertDialogFooter>
+					</AlertDialogContent>
+				</AlertDialog>
+			)}
 
 			<DataTable
 				title="Sales"

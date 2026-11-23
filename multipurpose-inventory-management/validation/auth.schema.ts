@@ -43,6 +43,7 @@ export interface AuthUser {
 		module: string;
 		actions: string[];
 	}[];
+	customRole?: { id: string; name: string } | null;
 }
 
 export interface ApiResponse<T = unknown> {

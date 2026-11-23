@@ -67,11 +67,14 @@ export default function ProductDetailPage() {
 	}
 
 	const totalStock = product.totalStock ?? 0;
-	const stockValue = totalStock * Number(product.defaultSalePrice ?? 0);
+	const stockValue = Number(product.totalStockCost ?? 0);
+	const avgPurchasePrice = Number(
+		product.avgPurchasePrice ?? product.defaultPurchasePrice ?? 0,
+	);
 	const margin =
-		product.defaultPurchasePrice && product.defaultSalePrice
+		avgPurchasePrice && product.defaultSalePrice
 			? (
-					((product.defaultSalePrice - product.defaultPurchasePrice) /
+					((product.defaultSalePrice - avgPurchasePrice) /
 						product.defaultSalePrice) *
 					100
 				).toFixed(1)
@@ -178,10 +181,10 @@ export default function ProductDetailPage() {
 					</CardHeader>
 					<CardContent className="space-y-3 text-sm">
 						<div className="flex justify-between">
-							<span className="text-muted-foreground">Purchase Price</span>
+							<span className="text-muted-foreground">Avg. Purchase Price</span>
 							<span className="font-medium">
 								{symbol}
-								{Number(product.defaultPurchasePrice ?? 0).toFixed(2)}
+								{avgPurchasePrice.toFixed(2)}
 							</span>
 						</div>
 						<div className="flex justify-between">

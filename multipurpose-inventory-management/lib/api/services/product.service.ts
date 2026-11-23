@@ -56,6 +56,8 @@ export type Product = {
 	category: ProductCategory;
 	subCategory: ProductCategory | null;
 	totalStock?: number;
+	totalStockCost?: number;
+	avgPurchasePrice?: number | null;
 	productStocks?: ProductStock[];
 	saleItems?: ProductSaleItem[];
 };

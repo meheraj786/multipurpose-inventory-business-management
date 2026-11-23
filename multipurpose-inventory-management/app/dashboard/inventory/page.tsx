@@ -157,7 +157,7 @@ export default function InventoryPage() {
 		return alert !== null && stock > 0 && stock <= alert;
 	});
 	const totalStockValue = products.reduce(
-		(sum, p) => sum + (p.totalStock ?? 0) * Number(p.defaultSalePrice ?? 0),
+		(sum, p) => sum + Number(p.totalStockCost ?? 0),
 		0,
 	);
 	const totalUnits = products.reduce((sum, p) => sum + (p.totalStock ?? 0), 0);
@@ -333,7 +333,7 @@ export default function InventoryPage() {
 									<TableHead>Product</TableHead>
 									<TableHead>SKU</TableHead>
 									<TableHead>Category</TableHead>
-									<TableHead className="text-right">Purchase</TableHead>
+									<TableHead className="text-right">Avg. Purchase</TableHead>
 									<TableHead className="text-right">Sale</TableHead>
 									<TableHead className="text-right">Alert At</TableHead>
 									<TableHead className="text-right">Stock</TableHead>
@@ -347,8 +347,7 @@ export default function InventoryPage() {
 									const alert = product.lowStockAlert
 										? Number(product.lowStockAlert)
 										: null;
-									const stockVal =
-										stock * Number(product.defaultSalePrice ?? 0);
+									const stockVal = Number(product.totalStockCost ?? 0);
 
 									return (
 										<TableRow
@@ -367,7 +366,11 @@ export default function InventoryPage() {
 											</TableCell>
 											<TableCell className="text-right tabular-nums">
 												{symbol}
-												{Number(product.defaultPurchasePrice ?? 0).toFixed(2)}
+												{Number(
+													product.avgPurchasePrice ??
+														product.defaultPurchasePrice ??
+														0,
+												).toFixed(2)}
 											</TableCell>
 											<TableCell className="text-right tabular-nums">
 												{symbol}
